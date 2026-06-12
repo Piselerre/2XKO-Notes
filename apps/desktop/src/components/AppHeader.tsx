@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { APP_VERSION } from '@/constants/version';
 import { SyncStatus } from './SyncStatus';
+import { UpdateStatus } from './UpdateStatus';
 import { useI18n } from '@/hooks/useI18n';
 import { openExternal } from '@/utils/openExternal';
 
@@ -66,6 +67,7 @@ export function AppHeader({ title, headerContent, backTo, backLabel }: AppHeader
         )}
       </div>
       <div className="app-header__right">
+        <UpdateStatus />
         <SyncStatus />
         <div className="app-header__settings-wrap">
           <Link to="/settings" className="app-header__icon" title={t('nav.settings')}>

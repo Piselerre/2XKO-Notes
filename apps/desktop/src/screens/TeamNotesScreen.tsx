@@ -6,12 +6,14 @@ import { CharacterGrid } from '@/components/CharacterGrid';
 import { NoteDetailPanel } from '@/components/NoteDetailPanel';
 import { TeamPairHeader } from '@/components/TeamPairHeader';
 import { CharacterCard } from '@/components/CharacterCard';
-import { characters, getCharacter } from '@/data/manifest';
+import { getCharacter } from '@/data/manifest';
+import { useCharacterRoster } from '@/hooks/useCharacterRoster';
 import { useAppStore } from '@2xko/core';
 import { useI18n } from '@/hooks/useI18n';
 
 function TeamSelectFirst() {
   const { t } = useI18n();
+  const characters = useCharacterRoster();
 
   return (
     <Layout title={t('teamNotes.title')} backTo="/" backLabel={`← ${t('common.home')}`}>
@@ -25,6 +27,7 @@ function TeamSelectSecond() {
   const { char1Id } = useParams<{ char1Id: string }>();
   const char1 = getCharacter(char1Id!);
   const { t } = useI18n();
+  const characters = useCharacterRoster();
 
   if (!char1) return null;
 

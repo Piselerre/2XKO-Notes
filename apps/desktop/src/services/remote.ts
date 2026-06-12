@@ -1,9 +1,11 @@
 import type { Announcement } from '@2xko/core';
 
 import { APP_VERSION, GITHUB_REPO } from '@/constants/version';
+import { PUBLIC_ANNOUNCEMENTS_URL } from '@/constants/updates';
 
 const ANNOUNCEMENTS_URL =
-  import.meta.env.VITE_ANNOUNCEMENTS_URL ?? '/remote/announcements.json';
+  import.meta.env.VITE_ANNOUNCEMENTS_URL ?? PUBLIC_ANNOUNCEMENTS_URL;
+const ANNOUNCEMENTS_FALLBACK_URL = '/remote/announcements.json';
 
 const CACHE_KEY = '2xko-announcements-cache';
 const CACHE_TTL = 60 * 60 * 1000;
@@ -28,7 +30,7 @@ export async function fetchAnnouncements(force = false): Promise<Announcement[]>
 
   try {
     const res = await fetch(ANNOUNCEMENTS_URL);
-    if (!res.ok) return [];
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json: AnnouncementsResponse = await res.json();
     const active = json.announcements.filter((a) => {
       if (!a.enabled) return false;
@@ -41,6 +43,17 @@ export async function fetchAnnouncements(force = false): Promise<Announcement[]>
     );
     return active;
   } catch {
+    if (ANNOUNCEMENTS_URL !== ANNOUNCEMENTS_FALLBACK_URL) {
+      try {
+        const res = await fetch(ANNOUNCEMENTS_FALLBACK_URL);
+        if (res.ok) {
+          const json: AnnouncementsResponse = await res.json();
+          return json.announcements.filter((a) => a.enabled);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     return [];
   }
 }

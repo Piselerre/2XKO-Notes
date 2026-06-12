@@ -39,4 +39,8 @@ const latest = {
 
 const outPath = path.join(nsisDir, 'latest.json');
 fs.writeFileSync(outPath, `${JSON.stringify(latest, null, 2)}\n`);
+
+const channelDir = path.join(root, 'updates-channel');
+fs.mkdirSync(channelDir, { recursive: true });
+fs.writeFileSync(path.join(channelDir, 'latest.json'), `${JSON.stringify(latest, null, 2)}\n`);
 console.log(`Wrote ${outPath}`);

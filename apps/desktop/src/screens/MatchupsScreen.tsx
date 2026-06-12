@@ -6,7 +6,8 @@ import { PageStrip } from '@/components/PageStrip';
 import { CharacterCard } from '@/components/CharacterCard';
 import { NoteDetailPanel } from '@/components/NoteDetailPanel';
 import { MatchupOpponentHeader } from '@/components/MatchupOpponentHeader';
-import { characters, getCharacter, getCharacterPortraitFallback, getCharacterPortraitSrc } from '@/data/manifest';
+import { getCharacter, getCharacterPortraitFallback, getCharacterPortraitSrc } from '@/data/manifest';
+import { useCharacterRoster } from '@/hooks/useCharacterRoster';
 import { preloadImages } from '@/utils/imageCache';
 import { useAppStore } from '@2xko/core';
 import { useI18n } from '@/hooks/useI18n';
@@ -14,6 +15,7 @@ import { useI18n } from '@/hooks/useI18n';
 function MatchupList() {
   const [search, setSearch] = useState('');
   const { t } = useI18n();
+  const characters = useCharacterRoster();
   const filtered = characters.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   useEffect(() => {

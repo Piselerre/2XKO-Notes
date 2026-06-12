@@ -8,7 +8,8 @@ import { NoteDetailPanel } from '@/components/NoteDetailPanel';
 import { SavedTeamsBar } from '@/components/SavedTeamsBar';
 import { CharacterBoxHeader } from '@/components/CharacterBoxHeader';
 import { TeamCreatorModal } from '@/components/TeamCreatorModal';
-import { characters, getCharacter, getCharacterPortraitFallback, getCharacterPortraitSrc } from '@/data/manifest';
+import { getCharacter, getCharacterPortraitFallback, getCharacterPortraitSrc } from '@/data/manifest';
+import { useCharacterRoster } from '@/hooks/useCharacterRoster';
 import { preloadImages } from '@/utils/imageCache';
 import { useAppStore } from '@2xko/core';
 import { useI18n } from '@/hooks/useI18n';
@@ -16,6 +17,7 @@ import { useI18n } from '@/hooks/useI18n';
 function ComboList() {
   const [search, setSearch] = useState('');
   const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const characters = useCharacterRoster();
   const savedTeams = useAppStore((s) => s.savedTeams);
   const activeSavedTeamId = useAppStore((s) => s.activeSavedTeamId);
   const navigate = useNavigate();

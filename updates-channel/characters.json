@@ -1,0 +1,20 @@
+{
+  "version": "2026.06",
+  "characters": [
+    { "id": "ahri", "slug": "ahri", "name": "Ahri", "archetype": "Rushdown", "image": "ahri.png" },
+    { "id": "akali", "slug": "akali", "name": "Akali", "archetype": "Rushdown", "image": "akali.png" },
+    { "id": "blitzcrank", "slug": "blitzcrank", "name": "Blitzcrank", "archetype": "Grappler", "image": "blitzcrank.png" },
+    { "id": "braum", "slug": "braum", "name": "Braum", "archetype": "Bruiser", "image": "braum.png" },
+    { "id": "caitlyn", "slug": "caitlyn", "name": "Caitlyn", "archetype": "Zoner", "image": "caitlyn.png" },
+    { "id": "darius", "slug": "darius", "name": "Darius", "archetype": "All-Rounder", "image": "darius.png" },
+    { "id": "ekko", "slug": "ekko", "name": "Ekko", "archetype": "Mix Up", "image": "ekko.png" },
+    { "id": "illaoi", "slug": "illaoi", "name": "Illaoi", "archetype": "Bruiser", "image": "illaoi.png" },
+    { "id": "jinx", "slug": "jinx", "name": "Jinx", "archetype": "Zoner", "image": "jinx.png" },
+    { "id": "senna", "slug": "senna", "name": "Senna", "archetype": "Zoner", "image": "senna.png" },
+    { "id": "teemo", "slug": "teemo", "name": "Teemo", "archetype": "Rushdown", "image": "teemo.png" },
+    { "id": "thresh", "slug": "thresh", "name": "Thresh", "archetype": "Grappler", "image": "thresh.png" },
+    { "id": "vi", "slug": "vi", "name": "Vi", "archetype": "Rushdown", "image": "vi.png" },
+    { "id": "warwick", "slug": "warwick", "name": "Warwick", "archetype": "Rushdown", "image": "warwick.png" },
+    { "id": "yasuo", "slug": "yasuo", "name": "Yasuo", "archetype": "All-Rounder", "image": "yasuo.png" }
+  ]
+}

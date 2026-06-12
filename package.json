@@ -1,7 +1,7 @@
 {
   "name": "2xko-notes",
   "private": true,
-  "version": "0.4.5",
+  "version": "0.4.6",
   "scripts": {
     "dev": "pnpm --filter @2xko/desktop dev",
     "dev:kill": "scripts\\kill-port-1420.cmd",
@@ -11,7 +11,8 @@
     "tauri:build": "pnpm --filter @2xko/desktop tauri:build",
     "img:thumbs": "node scripts/generate-character-thumbs.mjs",
     "verify:sync": "node scripts/verify-sync-export.mjs",
-    "latest:json": "node scripts/generate-latest-json.mjs"
+    "latest:json": "node scripts/generate-latest-json.mjs",
+    "publish:updates": "node scripts/publish-updates-channel.mjs"
   },
   "devDependencies": {
     "sharp": "^0.34.2",

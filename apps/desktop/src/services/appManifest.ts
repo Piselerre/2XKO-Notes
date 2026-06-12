@@ -1,10 +1,12 @@
 import type { Character } from '@2xko/core';
 
 import { APP_VERSION } from '@/constants/version';
+import { PUBLIC_MANIFEST_URL } from '@/constants/updates';
 import charactersData from '../../../../assets/manifest/characters.json';
 
 const MANIFEST_URL =
-  import.meta.env.VITE_APP_MANIFEST_URL ?? '/remote/app-manifest.json';
+  import.meta.env.VITE_APP_MANIFEST_URL ?? PUBLIC_MANIFEST_URL;
+const MANIFEST_FALLBACK_URL = '/remote/app-manifest.json';
 
 const MANIFEST_CACHE_KEY = '2xko-app-manifest-cache';
 const CHARACTERS_CACHE_KEY = '2xko-remote-characters-cache';
@@ -13,7 +15,7 @@ const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 export interface AppManifest {
   version: number;
   channel: string;
-  app: { minVersion: string; latestVersion: string };
+  app: { minVersion: string; latestVersion: string; binaryUpdateRequired?: boolean };
   characters: { version: string; url: string };
   announcements: { url: string };
   frontend: { version: string; bundleUrl: string | null };
@@ -78,6 +80,15 @@ export async function fetchAppManifest(force = false): Promise<AppManifest | nul
     return data;
   } catch (e) {
     console.warn('fetchAppManifest:', e);
+    if (MANIFEST_URL !== MANIFEST_FALLBACK_URL) {
+      try {
+        const data = await fetchJson<AppManifest>(MANIFEST_FALLBACK_URL);
+        localStorage.setItem(MANIFEST_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data }));
+        return data;
+      } catch {
+        /* ignore */
+      }
+    }
     return null;
   }
 }

@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { useFileAutosave } from '@/hooks/useFileAutosave';
 import { useRemoteUpdates } from '@/hooks/useRemoteUpdates';
+import { UpdateManagerProvider } from '@/hooks/useUpdateManager';
 import { StartupModals } from '@/components/StartupModals';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { MatchupsScreen } from '@/screens/MatchupsScreen';
@@ -18,7 +19,7 @@ export default function App() {
   useRemoteUpdates();
 
   return (
-    <>
+    <UpdateManagerProvider>
       <StartupModals />
       <DevDebugOverlay />
       <KofiFloatStack />
@@ -30,6 +31,6 @@ export default function App() {
         <Route path="/team-notes/*" element={<TeamNotesScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
-    </>
+    </UpdateManagerProvider>
   );
 }

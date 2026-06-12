@@ -1,0 +1,11 @@
+{
+  "version": "0.4.6",
+  "notes": "2XKO Notes v0.4.6",
+  "pub_date": "2026-06-12T23:27:44.812Z",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/Piselerre/2XKO-Notes/releases/download/v0.4.6/2XKO.Notes_0.4.6_x64-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRbnpKUmtwam9ZN2tOQUZnNkZQMTg3alFpTDM0OUhIWTkvbk5zclpVMVEwOFRiWnhZTDhQblBRWmhzSE40QkxubjRYRTZEeENramFUWFdySzk3NEc2T1IyaWs0MWMza0FJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxMzA2ODY0CWZpbGU6MlhLTyBOb3Rlc18wLjQuNl94NjQtc2V0dXAuZXhlCkh5U2t5QlZOaDRacTVoWTVLMzI5Wm4vMllOZ1U5TWQwd3kxYmpuQXRPbklWcFB6MytIeTRKN0lzSTZYNE1zNnRZNlg1NmNESkRSMHlqWkg0aGRNMEJBPT0K"
+    }
+  }
+}

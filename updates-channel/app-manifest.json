@@ -8,10 +8,10 @@
   },
   "characters": {
     "version": "2026.06",
-    "url": "/remote/characters.json"
+    "url": "https://raw.githubusercontent.com/Piselerre/2XKO-Notes-Updates/main/characters.json"
   },
   "announcements": {
-    "url": "/remote/announcements.json"
+    "url": "https://raw.githubusercontent.com/Piselerre/2XKO-Notes-Updates/main/announcements.json"
   },
   "frontend": {
     "version": "0.4.6",

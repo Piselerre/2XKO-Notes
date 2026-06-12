@@ -1779,6 +1779,74 @@ body::after {
 
 .sync-pill--on { color: var(--color-accent); }
 
+.update-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: min(18rem, 42vw);
+  padding: 0.28rem 0.55rem;
+  font-family: var(--font-display);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: rgba(12, 12, 20, 0.88);
+  border: 1px solid rgba(212, 255, 0, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.update-pill--content {
+  color: var(--color-accent);
+  border-color: rgba(212, 255, 0, 0.28);
+}
+
+.update-pill--busy {
+  color: var(--color-accent);
+}
+
+.update-pill--ready {
+  color: var(--color-text-primary);
+  border-color: rgba(212, 255, 0, 0.32);
+}
+
+.update-pill__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.update-pill__action {
+  padding: 0.12rem 0.45rem;
+  font: inherit;
+  color: #0c0c14;
+  background: var(--color-accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.update-pill__action:hover {
+  filter: brightness(1.08);
+}
+
+.update-pill__dismiss {
+  padding: 0;
+  font-size: 0.65rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.update-pill__dismiss:hover {
+  color: var(--color-text-primary);
+}
+
 /* ─── Editor IDE ─── */
 .editor-ide {
   display: flex;

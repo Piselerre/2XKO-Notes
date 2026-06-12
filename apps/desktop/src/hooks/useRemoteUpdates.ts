@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { runUpdateCheck } from '@/services/appManifest';
+import { applyContentUpdates, checkUpdatePlan } from '@/services/updateOrchestrator';
 import { getDevSettings } from '@/utils/devSettings';
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -8,9 +8,12 @@ const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 export function useRemoteUpdates() {
   useEffect(() => {
     async function check() {
-      const report = await runUpdateCheck();
+      const plan = await checkUpdatePlan();
+      if (plan.kind === 'content') {
+        await applyContentUpdates(plan);
+      }
       if (getDevSettings().verboseLogs) {
-        console.info('2XKO remote update check:', report);
+        console.info('2XKO remote update check:', plan);
       }
     }
 

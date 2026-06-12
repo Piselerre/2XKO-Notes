@@ -170,6 +170,13 @@ export const en = {
     updateSuccessBody: '2XKO Notes v{version} is installed. You are good to keep grinding.',
     updateSuccessOk: 'Nice',
   },
+  updates: {
+    downloading: 'Downloading update… {percent}%',
+    ready: 'v{version} ready',
+    restart: 'Restart',
+    installing: 'Finishing install…',
+    contentApplied: 'Content updated',
+  },
   frameData: {
     title: 'Frame Data',
     external: 'External frame data',

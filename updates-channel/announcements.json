@@ -1,0 +1,17 @@
+{
+  "version": 3,
+  "announcements": [
+    {
+      "id": "roster-senna-thresh",
+      "enabled": true,
+      "priority": 0,
+      "type": "info",
+      "title": "Roster update",
+      "body": "Senna and Thresh are now in the character roster. Keep your matchup notes fresh.",
+      "dismissible": true,
+      "showOnce": false,
+      "expiresAt": "2027-12-31T00:00:00Z",
+      "link": null
+    }
+  ]
+}
