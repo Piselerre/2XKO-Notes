@@ -15,6 +15,7 @@ import type {
 } from './types';
 import {
   createDefaultAppData,
+  createDefaultSyncMeta,
   createMatchup,
   createComboSheet,
   createTeamNote,
@@ -80,6 +81,8 @@ interface AppStore extends AppData {
   setNotesViewMode: (mode: NotesViewMode) => void;
 
   setGoogleConnected: (connected: boolean, email?: string | null) => void;
+  setDriveIds: (folderId: string | null, fileId: string | null) => void;
+  setLastSyncAt: (iso: string | null) => void;
   setSyncStatus: (status: AppData['syncMeta']['syncStatus']) => void;
   dismissAnnouncement: (id: string) => void;
   setAnnouncements: (announcements: Announcement[]) => void;
@@ -391,8 +394,23 @@ export const useAppStore = create<AppStore>()(
 
       setGoogleConnected: (connected, email = null) =>
         set((s) => ({
-          syncMeta: { ...s.syncMeta, googleConnected: connected, googleEmail: email ?? null },
+          syncMeta: {
+            ...s.syncMeta,
+            googleConnected: connected,
+            googleEmail: email ?? null,
+            ...(connected
+              ? {}
+              : { driveFolderId: null, driveFileId: null, lastSyncAt: null, syncStatus: 'idle' as const }),
+          },
         })),
+
+      setDriveIds: (folderId, fileId) =>
+        set((s) => ({
+          syncMeta: { ...s.syncMeta, driveFolderId: folderId, driveFileId: fileId },
+        })),
+
+      setLastSyncAt: (iso) =>
+        set((s) => ({ syncMeta: { ...s.syncMeta, lastSyncAt: iso } })),
 
       setSyncStatus: (status) =>
         set((s) => ({ syncMeta: { ...s.syncMeta, syncStatus: status } })),
@@ -429,7 +447,7 @@ export const useAppStore = create<AppStore>()(
           savedTeams: data.savedTeams ?? [],
           activeSavedTeamId: data.activeSavedTeamId ?? null,
           locale: data.locale ?? 'en',
-          syncMeta: data.syncMeta ?? createDefaultAppData().syncMeta,
+          syncMeta: { ...createDefaultSyncMeta(), ...(data.syncMeta ?? {}) },
           dismissedAnnouncements: data.dismissedAnnouncements ?? [],
         });
         document.documentElement.lang = data.locale ?? 'en';

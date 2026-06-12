@@ -128,6 +128,8 @@ export function createDefaultSyncMeta(): SyncMeta {
     lastModified: new Date().toISOString(),
     googleConnected: false,
     googleEmail: null,
+    driveFolderId: null,
+    driveFileId: null,
     lastSyncAt: null,
     syncStatus: 'idle',
   };

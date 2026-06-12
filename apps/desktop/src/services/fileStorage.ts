@@ -1,20 +1,28 @@
+import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@2xko/core';
-import type { AppData } from '@2xko/core';
+import type { AppData, SyncMeta } from '@2xko/core';
+
+import { LOCAL_SAVE_DEBOUNCE_MS } from '@/constants/autosave';
+import { isDesktopApp } from '@/utils/isDesktopApp';
 
 const SYNC_FILENAME = '2xko-notes.sync.json';
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let cachedPath: string | null = null;
 
-function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+export function buildSyncPayload(): string {
+  const data = useAppStore.getState().exportData();
+  return JSON.stringify(
+    { schemaVersion: 1, exportedAt: new Date().toISOString(), data },
+    null,
+    2
+  );
 }
 
 export async function getDataFilePath(): Promise<string> {
   if (cachedPath) return cachedPath;
-  if (isTauri()) {
+  if (isDesktopApp()) {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      cachedPath = await invoke<string>('get_data_file_path');
+      cachedPath = await tauriInvoke<string>('get_data_file_path');
       return cachedPath;
     } catch {
       /* fallthrough */
@@ -24,17 +32,11 @@ export async function getDataFilePath(): Promise<string> {
 }
 
 export async function saveToDataFile(): Promise<string | null> {
-  const data = useAppStore.getState().exportData();
-  const json = JSON.stringify(
-    { schemaVersion: 1, exportedAt: new Date().toISOString(), data },
-    null,
-    2
-  );
+  const json = buildSyncPayload();
 
-  if (isTauri()) {
+  if (isDesktopApp()) {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const path = await invoke<string>('save_data_file', { content: json });
+      const path = await tauriInvoke<string>('save_data_file', { content: json });
       cachedPath = path;
       return path;
     } catch (e) {
@@ -47,10 +49,15 @@ export async function saveToDataFile(): Promise<string | null> {
 
 export function scheduleFileSave(): void {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => void saveToDataFile(), 500);
+  saveTimer = setTimeout(() => {
+    void saveToDataFile();
+    if (isDesktopApp()) {
+      void import('./googleDrive').then((m) => m.scheduleDriveSync());
+    }
+  }, LOCAL_SAVE_DEBOUNCE_MS);
 }
 
-function parseSyncPayload(raw: string): AppData | null {
+export function parseSyncPayload(raw: string): AppData | null {
   try {
     const parsed = JSON.parse(raw) as { data?: AppData } & AppData;
     return (parsed.data ?? parsed) as AppData;
@@ -59,29 +66,44 @@ function parseSyncPayload(raw: string): AppData | null {
   }
 }
 
+function pickNewer(local: AppData, fileData: AppData): 'local' | 'file' {
+  const fileRev = fileData.syncMeta?.revision ?? 0;
+  const localRev = local.syncMeta?.revision ?? 0;
+  const fileTime = Date.parse(fileData.syncMeta?.lastModified ?? '0');
+  const localTime = Date.parse(local.syncMeta?.lastModified ?? '0');
+
+  if (fileRev > localRev || (fileRev === localRev && fileTime >= localTime)) {
+    return 'file';
+  }
+  return 'local';
+}
+
+export function mergeAppData(remote: AppData, preserveSyncMeta?: Partial<SyncMeta>): void {
+  const local = useAppStore.getState().exportData();
+  const winner = pickNewer(local, remote);
+
+  if (winner === 'file') {
+    const meta = preserveSyncMeta
+      ? { ...remote.syncMeta, ...preserveSyncMeta }
+      : remote.syncMeta;
+    useAppStore.getState().importData({ ...remote, syncMeta: meta });
+  } else {
+    void saveToDataFile();
+  }
+}
+
 /** Carga el .json al arrancar (Tauri). Usa la copia con revision más alta. */
 export async function loadFromDataFile(): Promise<void> {
-  if (!isTauri()) return;
+  if (!isDesktopApp()) return;
 
   try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    const content = await invoke<string>('load_data_file');
+    const content = await tauriInvoke<string>('load_data_file');
     if (!content.trim()) return;
 
     const fileData = parseSyncPayload(content);
     if (!fileData) return;
 
-    const local = useAppStore.getState().exportData();
-    const fileRev = fileData.syncMeta?.revision ?? 0;
-    const localRev = local.syncMeta?.revision ?? 0;
-    const fileTime = Date.parse(fileData.syncMeta?.lastModified ?? '0');
-    const localTime = Date.parse(local.syncMeta?.lastModified ?? '0');
-
-    if (fileRev > localRev || (fileRev === localRev && fileTime >= localTime)) {
-      useAppStore.getState().importData(fileData);
-    } else {
-      await saveToDataFile();
-    }
+    mergeAppData(fileData);
   } catch (e) {
     console.warn('loadFromDataFile:', e);
   }

@@ -104,16 +104,18 @@ export function TeamCreatorModal({ open, characters, onClose, onSave }: TeamCrea
           className="xko-input team-creator__search"
         />
 
-        <div className="team-creator__grid">
-          {filtered.map((char) => (
-            <CharacterCard
-              key={char.id}
-              character={char}
-              onSelect={() => handlePick(char.id)}
-              selected={char.id === char1Id || char.id === char2Id}
-              hideName
-            />
-          ))}
+        <div className="team-creator__grid-scroll">
+          <div className="team-creator__grid">
+            {filtered.map((char) => (
+              <CharacterCard
+                key={char.id}
+                character={char}
+                onSelect={() => handlePick(char.id)}
+                selected={char.id === char1Id || char.id === char2Id}
+                hideName
+              />
+            ))}
+          </div>
         </div>
 
         <div className="team-creator__actions">

@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { PageStrip } from '@/components/PageStrip';
 import { CharacterCard } from '@/components/CharacterCard';
 import { NoteDetailPanel } from '@/components/NoteDetailPanel';
-import { CharacterBoxHeader } from '@/components/CharacterBoxHeader';
+import { MatchupOpponentHeader } from '@/components/MatchupOpponentHeader';
 import { characters, getCharacter, getCharacterPortraitFallback, getCharacterPortraitSrc } from '@/data/manifest';
 import { preloadImages } from '@/utils/imageCache';
 import { useAppStore } from '@2xko/core';
@@ -43,7 +43,7 @@ function MatchupList() {
                 key={char.id}
                 character={char}
                 to={`/matchups/${char.id}`}
-                label={`${t('matchups.vs')} ${char.name}`}
+                label={`${t('matchups.vs')} ${char.name.toUpperCase()}`}
               />
             ))}
           </div>
@@ -86,14 +86,14 @@ function MatchupDetail() {
 
   if (!ready || !matchup) {
     return (
-      <Layout headerContent={<CharacterBoxHeader character={opponent} />} backTo="/matchups">
+      <Layout headerContent={<MatchupOpponentHeader character={opponent} />} backTo="/matchups">
         <p className="text-text-muted">{t('common.loading')}</p>
       </Layout>
     );
   }
 
   return (
-    <Layout headerContent={<CharacterBoxHeader character={opponent} />} backTo="/matchups" backLabel={t('matchups.back')}>
+    <Layout headerContent={<MatchupOpponentHeader character={opponent} />} backTo="/matchups" backLabel={t('matchups.back')}>
       <NoteDetailPanel
         tabs={matchupTabs}
         sections={matchup.sections}

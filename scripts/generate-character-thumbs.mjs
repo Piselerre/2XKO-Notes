@@ -37,6 +37,7 @@ const CHAMP_SELECT = {
   jinx: 'Jinx Champion Select 2XKO.png',
   senna: 'Senna-Champ-Select-2XKO.png',
   teemo: 'Teemo Champion Select 2XKO.png',
+  thresh: 'Thresh-Champ-Select-2XKO.png',
   vi: 'Vi Champion Select 2XKO.png',
   warwick: 'Warwick Champion Select 2XKO.png',
   yasuo: 'Yasuo Chmpion Select 2XKO.png',

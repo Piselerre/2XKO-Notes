@@ -765,10 +765,6 @@ body::after {
   filter: drop-shadow(0 0 10px rgba(255, 45, 107, 0.35)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
-.fighter-slot--selected:has(.fighter-slot__hit:hover) .fighter-slot__frame {
-  filter: drop-shadow(0 0 12px rgba(255, 45, 107, 0.45)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
-}
-
 .fighter-slot--selected:hover {
   --fighter-bracket-color: #ff4d7f;
 }
@@ -797,6 +793,16 @@ body::after {
 
 .fighter-slot:has(.fighter-slot__hit:hover) {
   --fighter-bracket-color: #eeff55;
+}
+
+.fighter-slot--selected:has(.fighter-slot__hit:hover),
+.team-creator__grid .fighter-slot--selected:has(.fighter-slot__hit:hover) {
+  --fighter-bracket-color: #ff4d7f;
+}
+
+.fighter-slot--selected:has(.fighter-slot__hit:hover) .fighter-slot__frame,
+.team-creator__grid .fighter-slot--selected:has(.fighter-slot__hit:hover) .fighter-slot__frame {
+  filter: drop-shadow(0 0 12px rgba(255, 45, 107, 0.5)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
 .fighter-slot:has(.fighter-slot__hit:hover) .fighter-slot__frame {
@@ -1339,6 +1345,15 @@ body::after {
   container-type: inline-size;
 }
 
+.team-creator__grid-scroll {
+  max-height: min(42vh, 22rem);
+  overflow-y: auto;
+  overflow-x: clip;
+  margin-bottom: 1rem;
+  padding: 1.1rem 2.35rem 1.5rem;
+  scrollbar-gutter: stable;
+}
+
 .team-creator__grid {
   --fighter-skew: 18deg;
   --fighter-unskew-scale: 1.2;
@@ -1348,15 +1363,17 @@ body::after {
   --fighter-bg: #0c0c14;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem 0.65rem;
+  gap: 0.75rem 0.85rem;
   max-height: none;
   overflow: visible;
-  margin-bottom: 0.85rem;
-  padding: 0.35rem 1rem 0.3rem;
+  margin-bottom: 0;
+  padding: 0.35rem 0.25rem 0.5rem;
 }
 
 .team-creator__grid > * {
   min-width: 0;
+  overflow: visible;
+  padding: 8px 14px 10px;
 }
 
 @container (max-width: 30rem) {
@@ -1550,6 +1567,22 @@ body::after {
 .xko-modal--team-creator {
   width: min(52rem, calc(100vw - 1.5rem));
   max-width: 52rem;
+  clip-path: none;
+  overflow: visible;
+  border: 1px solid rgba(212, 255, 0, 0.22);
+  filter:
+    drop-shadow(0 0 0 1px rgba(212, 255, 0, 0.35))
+    drop-shadow(0 0 30px rgba(212, 255, 0, 0.1))
+    drop-shadow(0 28px 56px rgba(0, 0, 0, 0.72));
+}
+
+.xko-modal--team-creator .xko-modal__body {
+  padding-bottom: 1.35rem;
+  overflow: visible;
+}
+
+.team-creator__grid .fighter-slot--selected:has(.fighter-slot__hit:hover) {
+  --fighter-bracket-color: #ff4d7f;
 }
 
 .xko-modal__head {
@@ -1584,6 +1617,48 @@ body::after {
 }
 
 .xko-modal__close:hover { color: var(--color-accent-secondary); border-color: rgba(255, 45, 107, 0.4); }
+
+/* ─── Matchup opponent header ─── */
+.matchup-opponent-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.matchup-opponent-header__vs {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-accent-secondary);
+}
+
+.matchup-opponent-header__name {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+/* ─── Sync status ─── */
+.sync-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.sync-status__eta {
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
 
 /* ─── Sync pill ─── */
 .sync-pill {

@@ -1,5 +1,9 @@
 import { createDefaultAppData, useAppStore } from '@2xko/core';
 
+import { APP_VERSION } from '@/constants/version';
+import { checkAllUpdates, installAppUpdate } from '@/services/appUpdater';
+import { clearManifestCaches, runUpdateCheck } from '@/services/appManifest';
+import { flushDriveSync, getDriveSyncEtaMs, isDriveSyncScheduled } from '@/services/googleDrive';
 import { clearImageCache } from '@/utils/imageCache';
 
 export function resetAllAppData(): void {
@@ -58,5 +62,69 @@ export function logAppState(): void {
 
 export function clearCaches(): void {
   clearImageCache();
-  alert('Caché de imágenes limpiada.');
+  clearManifestCaches();
+  alert('Caché de imágenes y manifests limpiada.');
+}
+
+export async function runBetaUpdateCheck(): Promise<void> {
+  const report = await checkAllUpdates(true);
+  console.group('2XKO Beta — update check');
+  console.log(report);
+  console.groupEnd();
+
+  const lines = [
+    `App: v${report.manifest.appVersion}`,
+    `Remoto: v${report.manifest.remoteAppVersion ?? '?'}`,
+    `Personajes: ${report.manifest.charactersVersion} → ${report.manifest.remoteCharactersVersion ?? '?'}`,
+    report.manifest.newCharacters.length
+      ? `Nuevos: ${report.manifest.newCharacters.join(', ')}`
+      : 'Sin personajes nuevos en remoto',
+    `GitHub: ${report.githubRelease.status}`,
+    `Updater plugin: ${report.manifest.updaterEnabled ? 'ON' : 'OFF (pendiente pubkey)'}`,
+  ];
+  alert(lines.join('\n'));
+}
+
+export async function testSilentUpdater(): Promise<void> {
+  const result = await installAppUpdate();
+  if (result === 'installed') {
+    alert('Actualización instalada. Reiniciando…');
+    return;
+  }
+  if (result === 'unavailable') {
+    alert('Updater no disponible aún. Falta plugin firmado en el build.');
+    return;
+  }
+  alert('Error al instalar actualización. Revisa consola.');
+}
+
+export function exportBetaDiagnostics(): void {
+  const state = useAppStore.getState();
+  const diag = {
+    exportedAt: new Date().toISOString(),
+    appVersion: APP_VERSION,
+    revision: state.syncMeta.revision,
+    googleConnected: state.syncMeta.googleConnected,
+    syncStatus: state.syncMeta.syncStatus,
+    lastSyncAt: state.syncMeta.lastSyncAt,
+    driveSyncScheduled: isDriveSyncScheduled(),
+    driveSyncEtaMs: getDriveSyncEtaMs(),
+    matchups: state.matchups.length,
+    comboSheets: state.comboSheets.length,
+    players: state.players.length,
+  };
+  console.group('2XKO Beta — diagnostics');
+  console.log(diag);
+  console.groupEnd();
+  alert('Diagnóstico volcado en consola (F12).');
+}
+
+export async function forceDriveSyncNow(): Promise<void> {
+  await flushDriveSync();
+  alert('Sync a Drive forzado (solo si había cambios pendientes).');
+}
+
+export async function previewRemoteManifest(): Promise<void> {
+  const report = await runUpdateCheck(true);
+  alert(JSON.stringify(report, null, 2));
 }

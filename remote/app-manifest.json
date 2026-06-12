@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "channel": "stable",
+  "app": {
+    "minVersion": "0.4.2",
+    "latestVersion": "0.4.2"
+  },
+  "characters": {
+    "version": "2026.06",
+    "url": "/remote/characters.json"
+  },
+  "announcements": {
+    "url": "/remote/announcements.json"
+  },
+  "frontend": {
+    "version": "0.4.2",
+    "bundleUrl": null
+  },
+  "updater": {
+    "enabled": false,
+    "endpoints": [],
+    "pubkey": null
+  }
+}

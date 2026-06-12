@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { useFileAutosave } from '@/hooks/useFileAutosave';
+import { useRemoteUpdates } from '@/hooks/useRemoteUpdates';
 import { StartupModals } from '@/components/StartupModals';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { MatchupsScreen } from '@/screens/MatchupsScreen';
@@ -14,6 +15,7 @@ import { DevDebugOverlay } from '@/components/DevDebugOverlay';
 export default function App() {
   useAnnouncements();
   useFileAutosave();
+  useRemoteUpdates();
 
   return (
     <>

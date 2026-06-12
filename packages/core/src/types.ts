@@ -103,6 +103,8 @@ export interface SyncMeta {
   lastModified: string;
   googleConnected: boolean;
   googleEmail: string | null;
+  driveFolderId: string | null;
+  driveFileId: string | null;
   lastSyncAt: string | null;
   syncStatus: 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 }

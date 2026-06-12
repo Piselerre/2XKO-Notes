@@ -5,10 +5,18 @@ import { useAppStore } from '@2xko/core';
 import type { AppData } from '@2xko/core';
 import { APP_VERSION } from '@/constants/version';
 import { getDataFilePath, saveToDataFile, SYNC_FILENAME } from '@/services/fileStorage';
+import { connectGoogleDrive, disconnectGoogleDrive } from '@/services/googleDrive';
+import { isDesktopApp } from '@/utils/isDesktopApp';
 import { checkForUpdates, type UpdateCheckResult } from '@/services/remote';
 import { DevSettingsPanel } from '@/components/DevSettingsPanel';
+import { BlockingModal } from '@/components/BlockingModal';
 import { useI18n } from '@/hooks/useI18n';
 import { openExternal } from '@/utils/openExternal';
+import {
+  areUpdatesIgnored,
+  clearDismissedUpdateVersion,
+  setUpdatesIgnored,
+} from '@/utils/updatePreferences';
 
 const FLAG_US = '/img/flags/Flag_of_the_United_States.svg';
 const FLAG_ES = '/img/flags/Flag_of_Spain.svg';
@@ -51,7 +59,6 @@ function LanguageSwitch() {
 
 export function SettingsScreen() {
   const syncMeta = useAppStore((s) => s.syncMeta);
-  const setGoogleConnected = useAppStore((s) => s.setGoogleConnected);
   const setSyncStatus = useAppStore((s) => s.setSyncStatus);
   const exportData = useAppStore((s) => s.exportData);
   const importData = useAppStore((s) => s.importData);
@@ -59,6 +66,11 @@ export function SettingsScreen() {
   const [dataPath, setDataPath] = useState('');
   const [updateState, setUpdateState] = useState<'idle' | 'checking' | UpdateCheckResult>('idle');
   const [updateUrl, setUpdateUrl] = useState<string | null>(null);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [driveError, setDriveError] = useState('');
+  const [updatesIgnored, setIgnoredState] = useState(areUpdatesIgnored());
+  const [ignoreConfirmOpen, setIgnoreConfirmOpen] = useState(false);
+  const desktopApp = isDesktopApp();
   const { t } = useI18n();
 
   useEffect(() => {
@@ -67,15 +79,34 @@ export function SettingsScreen() {
 
   useEffect(() => {
     document.documentElement.lang = useAppStore.getState().locale;
+    setIgnoredState(areUpdatesIgnored());
   }, []);
 
-  const handleConnectGoogle = () => {
-    const demo = window.confirm(t('settings.driveDemo'));
-    if (demo) {
-      setGoogleConnected(true, 'user@gmail.com');
-      setSyncStatus('synced');
+  async function handleConnectGoogle() {
+    setDriveError('');
+    setDriveBusy(true);
+    setSyncStatus('syncing');
+    try {
+      await connectGoogleDrive();
+    } catch (e) {
+      setSyncStatus('error');
+      setDriveError(String(e));
+    } finally {
+      setDriveBusy(false);
     }
-  };
+  }
+
+  async function handleDisconnectGoogle() {
+    setDriveError('');
+    setDriveBusy(true);
+    try {
+      await disconnectGoogleDrive();
+    } catch (e) {
+      setDriveError(String(e));
+    } finally {
+      setDriveBusy(false);
+    }
+  }
 
   const handleExport = () => {
     const data = exportData();
@@ -154,6 +185,32 @@ export function SettingsScreen() {
               {t('settings.updateOpenRelease')}
             </button>
           )}
+          <div className="mt-4 border-t border-border pt-4">
+            {updatesIgnored ? (
+              <>
+                <p className="text-xs text-text-muted">{t('settings.ignoreUpdatesOn')}</p>
+                <button
+                  type="button"
+                  className="link-pink mt-2"
+                  onClick={() => {
+                    setUpdatesIgnored(false);
+                    clearDismissedUpdateVersion();
+                    setIgnoredState(false);
+                  }}
+                >
+                  {t('settings.resumeUpdates')}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="xko-btn xko-btn--ghost"
+                onClick={() => setIgnoreConfirmOpen(true)}
+              >
+                {t('settings.ignoreUpdates')}
+              </button>
+            )}
+          </div>
         </section>
 
         <section className="xko-panel">
@@ -178,18 +235,38 @@ export function SettingsScreen() {
           <h2 className="font-display text-xs font-bold tracking-widest text-text-muted uppercase">
             {t('settings.googleDrive')}
           </h2>
+          <p className="mt-2 text-xs text-text-muted">{t('settings.driveDesc')}</p>
+          {!desktopApp && (
+            <p className="mt-2 text-xs text-amber-400/90">{t('settings.driveDesktopOnly')}</p>
+          )}
           {syncMeta.googleConnected ? (
             <div className="mt-3 space-y-2">
               <p className="text-sm">{syncMeta.googleEmail}</p>
-              <button type="button" onClick={() => setGoogleConnected(false)} className="link-pink">
+              {syncMeta.lastSyncAt && (
+                <p className="text-xs text-text-muted">
+                  {t('settings.lastSync')}: {new Date(syncMeta.lastSyncAt).toLocaleString()}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleDisconnectGoogle()}
+                disabled={driveBusy || !desktopApp}
+                className="link-pink"
+              >
                 {t('settings.disconnect')}
               </button>
             </div>
           ) : (
-            <button type="button" onClick={handleConnectGoogle} className="xko-btn xko-btn--lime mt-3">
-              {t('settings.connectDrive')}
+            <button
+              type="button"
+              onClick={() => void handleConnectGoogle()}
+              disabled={driveBusy || !desktopApp}
+              className="xko-btn xko-btn--lime mt-3"
+            >
+              {driveBusy ? t('settings.driveConnecting') : t('settings.connectDrive')}
             </button>
           )}
+          {driveError && <p className="mt-2 text-sm text-red-400">{driveError}</p>}
         </section>
 
         <section className="xko-panel">
@@ -209,6 +286,32 @@ export function SettingsScreen() {
 
         <DevSettingsPanel />
       </div>
+
+      <BlockingModal
+        open={ignoreConfirmOpen}
+        onClose={() => setIgnoreConfirmOpen(false)}
+        title={t('settings.ignoreUpdatesTitle')}
+      >
+        <p className="text-sm leading-relaxed text-text-muted whitespace-pre-line">
+          {t('settings.ignoreUpdatesBody')}
+        </p>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <button type="button" onClick={() => setIgnoreConfirmOpen(false)} className="xko-btn xko-btn--lime">
+            {t('settings.ignoreUpdatesNo')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setUpdatesIgnored(true);
+              setIgnoredState(true);
+              setIgnoreConfirmOpen(false);
+            }}
+            className="xko-btn xko-btn--ghost"
+          >
+            {t('settings.ignoreUpdatesYes')}
+          </button>
+        </div>
+      </BlockingModal>
     </Layout>
   );
 }

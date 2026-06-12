@@ -9,10 +9,15 @@ import { getDevSettings, setDevSettings } from '@/utils/devSettings';
 
 import {
   clearCaches,
+  exportBetaDiagnostics,
+  forceDriveSyncNow,
   logAppState,
+  previewRemoteManifest,
   resetAllAppData,
   resetStartupModals,
+  runBetaUpdateCheck,
   seedBetaTestData,
+  testSilentUpdater,
 } from '@/utils/devTools';
 
 export function DevSettingsPanel() {
@@ -80,6 +85,21 @@ export function DevSettingsPanel() {
         </button>
         <button type="button" className="xko-btn xko-btn--ghost" onClick={clearCaches}>
           Limpiar caché imágenes
+        </button>
+        <button type="button" className="xko-btn xko-btn--ghost" onClick={() => void runBetaUpdateCheck()}>
+          Beta: comprobar updates remotos
+        </button>
+        <button type="button" className="xko-btn xko-btn--ghost" onClick={() => void previewRemoteManifest()}>
+          Beta: ver app-manifest
+        </button>
+        <button type="button" className="xko-btn xko-btn--ghost" onClick={() => void testSilentUpdater()}>
+          Beta: probar updater silencioso
+        </button>
+        <button type="button" className="xko-btn xko-btn--ghost" onClick={exportBetaDiagnostics}>
+          Beta: diagnóstico sync
+        </button>
+        <button type="button" className="xko-btn xko-btn--ghost" onClick={() => void forceDriveSyncNow()}>
+          Beta: forzar sync Drive
         </button>
         <button type="button" className="xko-btn xko-btn--ghost" onClick={resetStartupModals}>
           Reset modales inicio

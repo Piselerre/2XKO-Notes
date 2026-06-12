@@ -97,6 +97,3 @@ export async function checkForUpdates(
   }
 }
 
-export async function syncToGoogleDrive(_data: unknown): Promise<boolean> {
-  return false;
-}

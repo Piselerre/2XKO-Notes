@@ -5,6 +5,7 @@ import { useAppStore } from '@2xko/core';
 import { useI18n } from '@/hooks/useI18n';
 
 import { BlockingModal } from './BlockingModal';
+import { UpdatePromptModal } from './UpdatePromptModal';
 
 import { openExternal } from '@/utils/openExternal';
 
@@ -21,6 +22,8 @@ export function StartupModals() {
   const activeAnnouncement = announcements
     .filter((a) => !dismissed.includes(a.id))
     .sort((a, b) => a.priority - b.priority)[0];
+
+  const startupReady = !showKofi && !showAnnouncement;
 
   useEffect(() => {
     if (!sessionStorage.getItem(KOFI_KEY)) setShowKofi(true);
@@ -78,6 +81,8 @@ export function StartupModals() {
           </a>
         )}
       </BlockingModal>
+
+      <UpdatePromptModal ready={startupReady} />
     </>
   );
 }

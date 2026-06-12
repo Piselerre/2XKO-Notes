@@ -40,6 +40,8 @@ const CHAMP_SELECT: Record<string, string> = {
 
   teemo: 'Teemo Champion Select 2XKO.png',
 
+  thresh: 'Thresh-Champ-Select-2XKO.png',
+
   vi: 'Vi Champion Select 2XKO.png',
 
   warwick: 'Warwick Champion Select 2XKO.png',
