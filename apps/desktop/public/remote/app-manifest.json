@@ -3,7 +3,7 @@
   "channel": "stable",
   "app": {
     "minVersion": "0.4.2",
-    "latestVersion": "0.4.3"
+    "latestVersion": "0.4.4"
   },
   "characters": {
     "version": "2026.06",
@@ -13,12 +13,14 @@
     "url": "/remote/announcements.json"
   },
   "frontend": {
-    "version": "0.4.3",
+    "version": "0.4.4",
     "bundleUrl": null
   },
   "updater": {
-    "enabled": false,
-    "endpoints": [],
-    "pubkey": null
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/Piselerre/2XKO-Notes/releases/latest/download/latest.json"
+    ],
+    "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFMTgzQUE2NjQ5NENDMjcKUldRbnpKUmtwam9ZN2h6aWxZOFQvV3QxWTgvSklCY0RqYW1DRGtRc0VROGZrL3RzUDkyV1RkcnkK"
   }
 }

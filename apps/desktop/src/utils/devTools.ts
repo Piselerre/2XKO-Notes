@@ -42,6 +42,8 @@ export function seedBetaTestData(): void {
 
 export function resetStartupModals(): void {
   sessionStorage.removeItem('2xko-kofi-dismissed');
+  localStorage.removeItem('2xko-dismissed-update-version');
+  localStorage.removeItem('2xko-just-updated');
   const store = useAppStore.getState();
   store.importData({ dismissedAnnouncements: [] });
   alert('Modales de inicio reseteados. Recarga la app (F5).');
@@ -86,13 +88,23 @@ export async function runBetaUpdateCheck(): Promise<void> {
 }
 
 export async function testSilentUpdater(): Promise<void> {
-  const result = await installAppUpdate();
+  const { checkForAppUpdate } = await import('@/services/appUpdater');
+  const offer = await checkForAppUpdate();
+  if (!offer) {
+    alert('No hay actualización disponible.');
+    return;
+  }
+  const result = await installAppUpdate(offer);
   if (result === 'installed') {
     alert('Actualización instalada. Reiniciando…');
     return;
   }
+  if (result === 'opened') {
+    alert('Updater no disponible en este build. Se abrió la página de release.');
+    return;
+  }
   if (result === 'unavailable') {
-    alert('Updater no disponible aún. Falta plugin firmado en el build.');
+    alert('Updater no disponible aún.');
     return;
   }
   alert('Error al instalar actualización. Revisa consola.');

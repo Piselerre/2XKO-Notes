@@ -164,6 +164,11 @@ export const en = {
     updateNow: 'Update now',
     updateLater: 'Not now',
     updateCancelWait: 'Not now ({seconds}s)',
+    updateInstalling: 'Downloading and installing…',
+    updateInstallError: 'Could not install automatically. Try again or download from GitHub.',
+    updateSuccessTitle: 'Updated!',
+    updateSuccessBody: '2XKO Notes v{version} is installed. You are good to keep grinding.',
+    updateSuccessOk: 'Nice',
   },
   frameData: {
     title: 'Frame Data',

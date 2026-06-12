@@ -4,9 +4,19 @@ import { checkForUpdates } from '@/services/remote';
 import { runUpdateCheck, type UpdateCheckReport } from '@/services/appManifest';
 import { openExternal } from '@/utils/openExternal';
 
+export interface AppUpdateOffer {
+  version: string;
+  source: 'tauri' | 'github';
+  releaseUrl?: string;
+}
+
 export interface FullUpdateReport {
   manifest: UpdateCheckReport;
   githubRelease: Awaited<ReturnType<typeof checkForUpdates>>;
+}
+
+function normalizeVersion(version: string): string {
+  return version.replace(/^v/i, '');
 }
 
 /** Unified check: remote manifest + GitHub release. */
@@ -18,34 +28,66 @@ export async function checkAllUpdates(force = false): Promise<FullUpdateReport> 
   return { manifest, githubRelease };
 }
 
+/** Prefer Tauri updater endpoint; fall back to GitHub Releases API. */
+export async function checkForAppUpdate(): Promise<AppUpdateOffer | null> {
+  if (isDesktopApp()) {
+    try {
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const update = await check();
+      if (update) {
+        return {
+          version: normalizeVersion(update.version),
+          source: 'tauri',
+          releaseUrl: `https://github.com/Piselerre/2XKO-Notes/releases/latest`,
+        };
+      }
+    } catch (e) {
+      console.warn('checkForAppUpdate (tauri):', e);
+    }
+  }
+
+  const github = await checkForUpdates(APP_VERSION);
+  if (github.status === 'available') {
+    return {
+      version: normalizeVersion(github.version),
+      source: 'github',
+      releaseUrl: github.url,
+    };
+  }
+
+  return null;
+}
+
 /**
- * Silent in-app update (Tauri updater plugin).
- * Requires signed releases + pubkey in app-manifest / tauri.conf.
+ * Download, install, and relaunch via the Tauri updater plugin.
+ * Falls back to opening the release page when the plugin is unavailable.
  */
-export async function installAppUpdate(): Promise<'installed' | 'unavailable' | 'error'> {
+export async function installAppUpdate(
+  offer: AppUpdateOffer
+): Promise<'installed' | 'opened' | 'unavailable' | 'error'> {
   if (!isDesktopApp()) return 'unavailable';
 
   try {
-    const updaterMod = '@tauri-apps/plugin-updater';
-    const processMod = '@tauri-apps/plugin-process';
-    const updater = await import(/* @vite-ignore */ updaterMod).catch(() => null) as {
-      check?: () => Promise<{ available: boolean; downloadAndInstall: () => Promise<void> } | null>;
-    } | null;
-    if (!updater?.check) return 'unavailable';
-
-    const update = await updater.check();
-    if (!update?.available) return 'unavailable';
-
-    await update.downloadAndInstall();
-    const relaunch = await import(/* @vite-ignore */ processMod).catch(() => null) as {
-      relaunch?: () => Promise<void>;
-    } | null;
-    await relaunch?.relaunch?.();
-    return 'installed';
+    const { check } = await import('@tauri-apps/plugin-updater');
+    const update = await check();
+    if (update) {
+      const { setJustUpdatedVersion } = await import('@/utils/updatePreferences');
+      setJustUpdatedVersion(normalizeVersion(update.version));
+      await update.downloadAndInstall();
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      await relaunch();
+      return 'installed';
+    }
   } catch (e) {
-    console.warn('installAppUpdate:', e);
-    return 'error';
+    console.warn('installAppUpdate (tauri):', e);
   }
+
+  if (offer.releaseUrl) {
+    openExternal(offer.releaseUrl);
+    return 'opened';
+  }
+
+  return 'unavailable';
 }
 
 export async function openLatestRelease(): Promise<void> {

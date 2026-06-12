@@ -11,7 +11,8 @@ use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
 
-const SCOPE: &str = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
+const SCOPE: &str =
+    "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -118,7 +119,10 @@ fn load_credentials(app: &AppHandle) -> Result<OAuthCredentials, String> {
 
     let mut candidates: Vec<PathBuf> = Vec::new();
 
-    if let Ok(path) = app.path().resolve("oauth_credentials.json", BaseDirectory::Resource) {
+    if let Ok(path) = app
+        .path()
+        .resolve("oauth_credentials.json", BaseDirectory::Resource)
+    {
         candidates.push(path);
     }
     if let Ok(dir) = app.path().resource_dir() {
@@ -154,7 +158,9 @@ fn load_tokens(app: &AppHandle) -> Result<Option<TokenData>, String> {
         return Ok(None);
     }
     let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&raw).map_err(|e| e.to_string()).map(Some)
+    serde_json::from_str(&raw)
+        .map_err(|e| e.to_string())
+        .map(Some)
 }
 
 fn save_tokens(app: &AppHandle, tokens: &TokenData) -> Result<(), String> {
@@ -241,9 +247,7 @@ fn auth_header(tokens: &TokenData) -> String {
 fn wait_for_auth_code(port: u16) -> Result<String, String> {
     let listener =
         TcpListener::bind(format!("127.0.0.1:{port}")).map_err(|e| format!("OAuth server: {e}"))?;
-    listener
-        .set_nonblocking(true)
-        .map_err(|e| e.to_string())?;
+    listener.set_nonblocking(true).map_err(|e| e.to_string())?;
 
     let deadline = Instant::now() + Duration::from_secs(180);
     loop {
@@ -276,7 +280,9 @@ fn read_oauth_code(stream: &mut TcpStream) -> Result<Option<String>, String> {
         for pair in query.split('&') {
             let mut parts = pair.splitn(2, '=');
             if parts.next() == Some("code") {
-                code = parts.next().map(|c| urlencoding::decode(c).unwrap_or_default().into_owned());
+                code = parts
+                    .next()
+                    .map(|c| urlencoding::decode(c).unwrap_or_default().into_owned());
             }
         }
     }
@@ -362,9 +368,7 @@ fn find_sync_file(
     tokens: &TokenData,
     folder_id: &str,
 ) -> Result<Option<String>, String> {
-    let q = format!(
-        "'{folder_id}' in parents and name = '{SYNC_FILE}' and trashed = false"
-    );
+    let q = format!("'{folder_id}' in parents and name = '{SYNC_FILE}' and trashed = false");
     let url = format!(
         "{DRIVE_API}/files?q={}&fields=files(id)&pageSize=1&spaces=drive",
         urlencoding::encode(&q)
@@ -469,8 +473,7 @@ pub fn drive_connect(app: &AppHandle) -> Result<String, String> {
     let creds = load_credentials(app)?;
     let client = http_client()?;
 
-    let listener =
-        TcpListener::bind("127.0.0.1:0").map_err(|e| format!("OAuth server: {e}"))?;
+    let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| format!("OAuth server: {e}"))?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     drop(listener);
 
@@ -585,13 +588,7 @@ pub fn drive_push(
         find_sync_file(&client, &tokens, &folder_id)?
     };
 
-    let new_file_id = upload_file(
-        &client,
-        &tokens,
-        &folder_id,
-        existing.as_deref(),
-        &content,
-    )?;
+    let new_file_id = upload_file(&client, &tokens, &folder_id, existing.as_deref(), &content)?;
 
     Ok(GoogleDrivePushResult {
         folder_id,
