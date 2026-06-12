@@ -2,12 +2,12 @@
   "version": 2,
   "announcements": [
     {
-      "id": "2xko-season-notes-v043",
+      "id": "2xko-auto-update-test-v045",
       "enabled": true,
       "priority": 0,
-      "type": "info",
-      "title": "2XKO Notes v0.4.3",
-      "body": "Thresh ya está en el roster y los anuncios ahora salen aquí, encima del café. Revisa tus matchups antes del próximo set.",
+      "type": "success",
+      "title": "Auto-update activo",
+      "body": "Si ves esto, la v0.4.5 se instaló sola. El updater funciona — a seguir laburando matchups.",
       "dismissible": true,
       "showOnce": false,
       "expiresAt": "2026-12-31T00:00:00Z",
