@@ -14,6 +14,5 @@ apps/desktop/src-tauri/gen/
 *.log
 .pnpm-store/
 
-# Solo tu PC: secretos y archivos viejos (ver _NO-SUBIR/LEEME.md)
-_NO-SUBIR/*
-!_NO-SUBIR/LEEME.md
+# Carpeta privada local (secretos, docs dev) — no subir nunca
+_NO-SUBIR/
