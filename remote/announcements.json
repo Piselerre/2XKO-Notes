@@ -1,9 +1,21 @@
 {
-  "version": 1,
+  "version": 2,
   "announcements": [
     {
-      "id": "welcome",
+      "id": "2xko-season-notes-v043",
       "enabled": true,
+      "priority": 0,
+      "type": "info",
+      "title": "2XKO Notes v0.4.3",
+      "body": "Thresh ya está en el roster y los anuncios ahora salen aquí, encima del café. Revisa tus matchups antes del próximo set.",
+      "dismissible": true,
+      "showOnce": false,
+      "expiresAt": "2026-12-31T00:00:00Z",
+      "link": "https://2xkoplay.com"
+    },
+    {
+      "id": "welcome",
+      "enabled": false,
       "priority": 1,
       "type": "info",
       "title": "Bienvenido a 2XKO Notes",

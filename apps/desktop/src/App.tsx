@@ -9,7 +9,7 @@ import { CombosScreen } from '@/screens/CombosScreen';
 import { PlayersScreen } from '@/screens/PlayersScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { TeamNotesScreen } from '@/screens/TeamNotesScreen';
-import { KofiButton } from '@/components/KofiButton';
+import { KofiFloatStack } from '@/components/KofiFloatStack';
 import { DevDebugOverlay } from '@/components/DevDebugOverlay';
 
 export default function App() {
@@ -21,7 +21,7 @@ export default function App() {
     <>
       <StartupModals />
       <DevDebugOverlay />
-      <KofiButton />
+      <KofiFloatStack />
       <Routes>
         <Route path="/" element={<HomeScreen />} />
         <Route path="/combos/*" element={<CombosScreen />} />

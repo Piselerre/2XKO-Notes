@@ -3,7 +3,7 @@
   "channel": "stable",
   "app": {
     "minVersion": "0.4.2",
-    "latestVersion": "0.4.2"
+    "latestVersion": "0.4.3"
   },
   "characters": {
     "version": "2026.06",
@@ -13,7 +13,7 @@
     "url": "/remote/announcements.json"
   },
   "frontend": {
-    "version": "0.4.2",
+    "version": "0.4.3",
     "bundleUrl": null
   },
   "updater": {

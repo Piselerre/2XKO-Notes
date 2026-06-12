@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import { useAppStore } from '@2xko/core';
-
 import { useI18n } from '@/hooks/useI18n';
 
 import { BlockingModal } from './BlockingModal';
@@ -13,34 +11,17 @@ const KOFI_KEY = '2xko-kofi-dismissed';
 
 export function StartupModals() {
   const { t } = useI18n();
-  const announcements = useAppStore((s) => s.announcements);
-  const dismissed = useAppStore((s) => s.dismissedAnnouncements);
-  const dismissAnnouncement = useAppStore((s) => s.dismissAnnouncement);
   const [showKofi, setShowKofi] = useState(false);
-  const [showAnnouncement, setShowAnnouncement] = useState(false);
 
-  const activeAnnouncement = announcements
-    .filter((a) => !dismissed.includes(a.id))
-    .sort((a, b) => a.priority - b.priority)[0];
-
-  const startupReady = !showKofi && !showAnnouncement;
+  const startupReady = !showKofi;
 
   useEffect(() => {
     if (!sessionStorage.getItem(KOFI_KEY)) setShowKofi(true);
   }, []);
 
-  useEffect(() => {
-    if (!showKofi && activeAnnouncement) setShowAnnouncement(true);
-  }, [showKofi, activeAnnouncement]);
-
   const closeKofi = () => {
     sessionStorage.setItem(KOFI_KEY, '1');
     setShowKofi(false);
-  };
-
-  const closeAnnouncement = () => {
-    if (activeAnnouncement) dismissAnnouncement(activeAnnouncement.id);
-    setShowAnnouncement(false);
   };
 
   return (
@@ -62,24 +43,6 @@ export function StartupModals() {
             @PixelR_
           </button>
         </p>
-      </BlockingModal>
-
-      <BlockingModal
-        open={showAnnouncement && !!activeAnnouncement}
-        onClose={closeAnnouncement}
-        title={activeAnnouncement?.title ?? t('startup.notice')}
-      >
-        <p className="text-sm text-text-muted">{activeAnnouncement?.body}</p>
-        {activeAnnouncement?.link && (
-          <a
-            href={activeAnnouncement.link}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-block text-sm text-accent hover:underline"
-          >
-            {t('startup.learnMore')}
-          </a>
-        )}
       </BlockingModal>
 
       <UpdatePromptModal ready={startupReady} />
