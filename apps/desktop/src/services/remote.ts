@@ -74,22 +74,36 @@ export async function checkForUpdates(
   currentVersion: string = APP_VERSION
 ): Promise<UpdateCheckResult> {
   try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-      headers: { Accept: 'application/vnd.github+json' },
-    });
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`,
+      { headers: { Accept: 'application/vnd.github+json' } }
+    );
     if (res.status === 404) return { status: 'no_release' };
     if (!res.ok) return { status: 'error' };
 
-    const data = (await res.json()) as { tag_name?: string; html_url?: string };
-    const remote = (data.tag_name ?? '').replace(/^v/i, '');
-    if (!remote) return { status: 'error' };
+    const releases = (await res.json()) as Array<{
+      tag_name?: string;
+      html_url?: string;
+      draft?: boolean;
+      prerelease?: boolean;
+    }>;
 
-    if (isNewerVersion(remote, currentVersion)) {
-      return {
-        status: 'available',
-        version: remote,
-        url: data.html_url ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
-      };
+    let best: { version: string; url: string } | null = null;
+    for (const release of releases) {
+      if (release.draft || release.prerelease) continue;
+      const remote = (release.tag_name ?? '').replace(/^v/i, '');
+      if (!remote) continue;
+      if (!isNewerVersion(remote, currentVersion)) continue;
+      if (!best || isNewerVersion(remote, best.version)) {
+        best = {
+          version: remote,
+          url: release.html_url ?? `https://github.com/${GITHUB_REPO}/releases/tag/v${remote}`,
+        };
+      }
+    }
+
+    if (best) {
+      return { status: 'available', version: best.version, url: best.url };
     }
     return { status: 'current' };
   } catch {

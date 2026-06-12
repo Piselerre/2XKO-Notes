@@ -38,7 +38,7 @@ export async function checkForAppUpdate(): Promise<AppUpdateOffer | null> {
         return {
           version: normalizeVersion(update.version),
           source: 'tauri',
-          releaseUrl: `https://github.com/Piselerre/2XKO-Notes/releases/latest`,
+          releaseUrl: `https://github.com/Piselerre/2XKO-Notes/releases/tag/v${normalizeVersion(update.version)}`,
         };
       }
     } catch (e) {

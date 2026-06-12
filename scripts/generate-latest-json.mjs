@@ -14,6 +14,7 @@ if (!version) {
 const repo = 'Piselerre/2XKO-Notes';
 const nsisDir = path.join(root, 'apps/desktop/src-tauri/target/release/bundle/nsis');
 const exeName = `2XKO Notes_${version}_x64-setup.exe`;
+const githubAssetName = `2XKO.Notes_${version}_x64-setup.exe`;
 const sigPath = path.join(nsisDir, `${exeName}.sig`);
 
 if (!fs.existsSync(sigPath)) {
@@ -22,7 +23,7 @@ if (!fs.existsSync(sigPath)) {
 }
 
 const signature = fs.readFileSync(sigPath, 'utf8').trim();
-const url = `https://github.com/${repo}/releases/download/v${version}/${encodeURIComponent(exeName)}`;
+const url = `https://github.com/${repo}/releases/download/v${version}/${githubAssetName}`;
 
 const latest = {
   version,
