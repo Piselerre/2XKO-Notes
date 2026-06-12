@@ -1,0 +1,31 @@
+{
+  "matchupSections": [
+    { "id": "general", "label": "General" },
+    { "id": "round_start", "label": "Round Start" },
+    { "id": "neutral", "label": "Neutral" },
+    { "id": "punishes", "label": "Punishes" },
+    { "id": "assists", "label": "Assists" },
+    { "id": "notes", "label": "Notes" },
+    { "id": "checklist", "label": "Checklist" }
+  ],
+  "comboCategories": [
+    { "id": "round_start", "label": "Round Start" },
+    { "id": "midscreen", "label": "Midscreen" },
+    { "id": "corner", "label": "Corner" },
+    { "id": "corner_carry", "label": "Corner Carry" },
+    { "id": "oki", "label": "Oki" },
+    { "id": "assists", "label": "Assists" },
+    { "id": "fury", "label": "Fury" },
+    { "id": "1_bar", "label": "1 Bar" },
+    { "id": "2_bar", "label": "2 Bar" },
+    { "id": "3_bar", "label": "3 Bar" },
+    { "id": "tod", "label": "TOD" }
+  ],
+  "teamSections": [
+    { "id": "synergies", "label": "Synergies" },
+    { "id": "assists", "label": "Assists" },
+    { "id": "team_routes", "label": "Team Routes" },
+    { "id": "burst_safe", "label": "Burst Safe Routes" },
+    { "id": "gameplan", "label": "Gameplan" }
+  ]
+}

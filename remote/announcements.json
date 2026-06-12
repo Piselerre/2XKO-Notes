@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "announcements": [
+    {
+      "id": "welcome",
+      "enabled": true,
+      "priority": 1,
+      "type": "info",
+      "title": "Bienvenido a 2XKO Notes",
+      "body": "Tus notas se guardan automáticamente. Conecta Google Drive en Settings para sincronizar.",
+      "dismissible": true,
+      "showOnce": true,
+      "expiresAt": null,
+      "link": null
+    }
+  ]
+}

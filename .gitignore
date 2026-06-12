@@ -1,0 +1,19 @@
+node_modules/
+dist/
+target/
+*.local
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+client_secret*.json
+**/google-oauth*.json
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+*.log
+.pnpm-store/
+
+# Solo tu PC: secretos y archivos viejos (ver _NO-SUBIR/LEEME.md)
+_NO-SUBIR/*
+!_NO-SUBIR/LEEME.md

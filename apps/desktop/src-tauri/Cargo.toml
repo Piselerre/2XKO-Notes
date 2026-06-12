@@ -1,0 +1,27 @@
+[package]
+name = "x2ko-notes"
+version = "0.1.0"
+description = "2XKO Notes - Competitive notes app"
+authors = ["2XKO Notes"]
+edition = "2021"
+
+[lib]
+name = "x2ko_notes_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
