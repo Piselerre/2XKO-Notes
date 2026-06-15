@@ -1,0 +1,55 @@
+name: Build Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write OAuth credentials (release build)
+        working-directory: apps/desktop/src-tauri
+        shell: pwsh
+        run: |
+          if (-not $env:OAUTH_CREDENTIALS_JSON) {
+            Write-Error "Set repository secret OAUTH_CREDENTIALS_JSON before release builds."
+          }
+          Set-Content -Path oauth_credentials.json -Value $env:OAUTH_CREDENTIALS_JSON -NoNewline
+        env:
+          OAUTH_CREDENTIALS_JSON: ${{ secrets.OAUTH_CREDENTIALS_JSON }}
+
+      - name: Build portable executable
+        run: pnpm tauri:build:portable
+        env:
+          VITE_PORTABLE_BUILD: '1'
+
+      - name: Upload portable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-zip
+          path: dist-releases/*-portable.zip
+
+      # After SignPath approval, add a sign-windows job here using
+      # signpath/github-action-submit-signing-request@v1

@@ -3,15 +3,19 @@
 Competitive note-taking for **2XKO**: combos, matchups, players, and more.  
 Built by [@PixelR_](https://twitter.com/PixelR_).
 
+**License:** [MIT](LICENSE) · **Privacy:** [PRIVACY.md](PRIVACY.md) · **Code signing:** [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md)
+
 ---
 
 ## Download (Windows portable — v0.5.0+)
 
-1. Go to **[Releases](https://github.com/Piselerre/2XKO-Notes/releases)** on GitHub.
-2. Download **`2XKO.Notes_<version>_x64-portable.exe`**.
-3. Run it from any folder. No install wizard.
+**[Releases](https://github.com/Piselerre/2XKO-Notes/releases)** · Full instructions: **[docs/DOWNLOAD.md](docs/DOWNLOAD.md)**
 
-> Extract the portable zip and run **`Iniciar 2XKO Notes.bat`** (not the `.exe` directly). If Windows SmartScreen still appears the first time, choose **More info → Run anyway**.
+1. Download **`2XKO.Notes_<version>_x64-portable.zip`**
+2. Extract the archive
+3. Run **`2XKO Notes.exe`** inside the `2XKO Notes` folder
+
+Windows builds are signed with free code signing provided by **[SignPath.io](https://about.signpath.io/)**, certificate by **[SignPath Foundation](https://signpath.org/)**. See [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 
 ### Still on the old installer (v0.4.x)?
 
@@ -70,3 +74,13 @@ Check Settings → data file path (`Documents/2XKO Notes/`). Import a `.json` ba
 
 **Bug or suggestion**  
 Open a [GitHub Issue](https://github.com/Piselerre/2XKO-Notes/issues) or message [@PixelR_](https://twitter.com/PixelR_).
+
+---
+
+## Legal
+
+- [End User License Agreement (EULA)](docs/EULA.md) — English / Español
+- [Privacy Policy](PRIVACY.md) — English / Español
+- [Code Signing Policy](CODE_SIGNING_POLICY.md) — English / Español
+
+2XKO Notes is a fan-made tool. Not affiliated with Riot Games or 2XKO.

@@ -3,11 +3,11 @@
 ## Download (manual, one time)
 
 Users on the **old installer** (v0.4.6 / v0.4.7) will **not** receive v0.5.0 automatically.  
-Download **`2XKO.Notes_0.5.0_x64-portable.zip`** from [GitHub Releases](https://github.com/Piselerre/2XKO-Notes/releases).
+Download **`2XKO.Notes_0.5.0_x64-portable.zip`** from [GitHub Releases](https://github.com/Piselerre/2XKO-Notes/releases). See **[docs/DOWNLOAD.md](DOWNLOAD.md)** for full instructions.
 
-Extract the zip, then run **`Iniciar 2XKO Notes.bat`** (not the `.exe` directly the first time). The launcher removes Windows Mark-of-the-Web blocking before starting the app.
+Extract the zip and run **`2XKO Notes.exe`** inside the `2XKO Notes` folder.
 
-If SmartScreen still appears on first run: **More info → Run anyway** (one time only).
+Windows builds are signed via [SignPath Foundation](https://signpath.org/) — see [CODE_SIGNING_POLICY.md](../CODE_SIGNING_POLICY.md).
 
 ## Your notes (do not lose data)
 

@@ -1,0 +1,12 @@
+2XKO Notes - End User License Agreement
+
+Copyright (c) 2026 PixelR. Licensed under the MIT License.
+Full EULA (English / Espanol): https://github.com/Piselerre/2XKO-Notes/blob/main/docs/EULA.md
+
+Your notes are stored locally in Documents\2XKO Notes\ and are NOT removed when you update or reinstall.
+
+By using 2XKO Notes you agree to use the software at your own risk.
+The author is not affiliated with Riot Games or 2XKO.
+
+Privacy: https://github.com/Piselerre/2XKO-Notes/blob/main/PRIVACY.md
+Code signing: https://github.com/Piselerre/2XKO-Notes/blob/main/CODE_SIGNING_POLICY.md

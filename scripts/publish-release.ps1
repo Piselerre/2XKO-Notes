@@ -22,11 +22,12 @@ if (-not (Test-Path $zip)) {
 $notes = @"
 ## 2XKO Notes v$Version (portable)
 
-1. Descarga el **.zip** y extrae todo.
-2. Ejecuta **`Iniciar 2XKO Notes.bat`** (no el .exe directamente la primera vez).
-   El .bat quita el bloqueo de SmartScreen/Defender antes de abrir la app.
-3. Si Windows aun avisa la primera vez: **Mas informacion -> Ejecutar de todas formas** (solo una vez).
-4. Notas en ``Documentos\2XKO Notes\2xko-notes.sync.json``
+1. Download the **.zip** and extract everything.
+2. Run **2XKO Notes.exe** inside the **2XKO Notes** folder.
+3. Notes are stored in ``Documentos\2XKO Notes\2xko-notes.sync.json``
+
+Windows builds are signed with free code signing from SignPath Foundation.
+See CODE_SIGNING_POLICY.md in the repository.
 "@
 
 $tag = "v$Version"

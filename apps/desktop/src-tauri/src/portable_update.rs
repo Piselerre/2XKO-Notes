@@ -84,7 +84,7 @@ Get-Process -Name '2XKO Notes' -ErrorAction SilentlyContinue | Stop-Process -For
 Start-Sleep -Seconds 1
 Get-ChildItem -LiteralPath $extractRoot -Recurse -Force | Unblock-File -ErrorAction SilentlyContinue
 Copy-Item -Path (Join-Path $src '*') -Destination $dst -Recurse -Force
-foreach ($name in @('Iniciar 2XKO Notes.bat', 'LEEME.txt')) {{
+foreach ($name in @('README.txt')) {{
   $launcher = Join-Path $parent $name
   $from = Join-Path $extractRoot $name
   if (Test-Path $from) {{ Copy-Item -LiteralPath $from -Destination $launcher -Force }}
