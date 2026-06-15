@@ -2,6 +2,10 @@
 
 **2XKO Notes** — Version 0.5.0+
 
+A free, community-driven tool for competitive 2XKO preparation. Built with care to help players level up — not affiliated with Riot Games.
+
+*Herramienta gratuita hecha con cariño para la escena competitiva de 2XKO. Sin afiliación con Riot Games.*
+
 ---
 
 ## English

@@ -4,17 +4,21 @@ import { SectionCard } from '@/components/SectionCard';
 import { BlockingModal } from '@/components/BlockingModal';
 import { AppHeader } from '@/components/AppHeader';
 import { useI18n } from '@/hooks/useI18n';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { openExternal } from '@/utils/openExternal';
 
 const WIKI_URL = 'https://wiki.play2xko.com/en-us/';
 
 export function HomeScreen() {
   const { t } = useI18n();
+  const mobile = useIsMobile();
   const [frameModal, setFrameModal] = useState(false);
 
   return (
-    <div className="home-root">
+    <div className={`home-root${mobile ? ' home-root--mobile' : ''}`}>
       <AppHeader />
+
+      <p className="home-mission">{t('home.mission')}</p>
 
       <nav className="home-grid" aria-label={t('nav.menu')}>
         <SectionCard num="01" accent="lime" to="/combos" title={t('home.combos')} desc={t('home.combosDesc')} bgSlug="vi" />

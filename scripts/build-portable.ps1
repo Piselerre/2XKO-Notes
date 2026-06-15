@@ -31,10 +31,12 @@ New-Item -ItemType File -Force -Path (Join-Path $appDir ".portable") | Out-Null
 $readme = @"
 2XKO Notes v$ver
 
+Built with care for the competitive 2XKO scene.
+Hecho con cariño para la escena competitiva de 2XKO.
+
 Run: 2XKO Notes\2XKO Notes.exe
 
 Your notes: Documents\2XKO Notes\2xko-notes.sync.json
-Windows builds are signed via SignPath Foundation (see CODE_SIGNING_POLICY.md).
 "@
 Set-Content -Path (Join-Path $root "README.txt") -Value $readme -Encoding UTF8
 

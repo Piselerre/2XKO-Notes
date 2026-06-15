@@ -2,13 +2,16 @@
 
 ## English
 
+**Built with care for the competitive 2XKO scene.**  
+Free, open-source note-taking for matchups, combos, and player intel — so the community can level up together.
+
 **Latest release:** [GitHub Releases](https://github.com/Piselerre/2XKO-Notes/releases)
 
 1. Download `2XKO.Notes_<version>_x64-portable.zip`
 2. Extract the archive
 3. Run `2XKO Notes.exe` inside the `2XKO Notes` folder
 
-Your notes are stored in `Documents\2XKO Notes\` — not inside the executable.
+Your notes are stored in `Documents\2XKO Notes\` — not inside the executable. Share the app with your training partners if it helps your prep.
 
 ### Code signing
 
@@ -24,13 +27,16 @@ Windows builds are signed with free code signing provided by [SignPath.io](https
 
 ## Español
 
+**Hecho con cariño para la escena competitiva de 2XKO.**  
+Herramienta gratuita y open-source para matchups, combos e intel de rivales — para que la comunidad suba de nivel juntos.
+
 **Última versión:** [GitHub Releases](https://github.com/Piselerre/2XKO-Notes/releases)
 
 1. Descarga `2XKO.Notes_<version>_x64-portable.zip`
 2. Extrae el archivo
 3. Ejecuta `2XKO Notes.exe` dentro de la carpeta `2XKO Notes`
 
-Tus notas están en `Documentos\2XKO Notes\` — no dentro del ejecutable.
+Tus notas están en `Documentos\2XKO Notes\` — no dentro del ejecutable. Si te sirve en ranked o torneos, compártela con tu duo o tu equipo.
 
 ### Firma de código
 

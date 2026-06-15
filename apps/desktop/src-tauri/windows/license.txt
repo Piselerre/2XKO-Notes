@@ -1,5 +1,8 @@
 2XKO Notes - End User License Agreement
 
+Built with care for the competitive 2XKO community.
+Hecho con cariño para la escena competitiva de 2XKO.
+
 Copyright (c) 2026 PixelR. Licensed under the MIT License.
 Full EULA (English / Espanol): https://github.com/Piselerre/2XKO-Notes/blob/main/docs/EULA.md
 

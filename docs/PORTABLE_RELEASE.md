@@ -1,4 +1,6 @@
-# Portable v0.5.0 — beta tester notes
+# Portable v0.5.0 — notes for the scene
+
+A community-built tool for competitive prep. Thank you for testing and helping raise the bar.
 
 ## Download (manual, one time)
 
@@ -11,7 +13,7 @@ Windows builds are signed via [SignPath Foundation](https://signpath.org/) — s
 
 ## Your notes (do not lose data)
 
-Notes are **never** stored inside the `.exe`. They live here:
+Your prep lives in your notes file — never inside the `.exe`:
 
 ```
 Documents/2XKO Notes/2xko-notes.sync.json
@@ -26,7 +28,7 @@ Documents/2XKO Notes/backups/YYYY-MM-DD/HH-MM-SS.json
 ### Before first launch of portable
 
 1. If you already have `2xko-notes.sync.json`, put it in `Documents/2XKO Notes/`.
-2. If you still have data only in `%AppData%\com.x2ko.notes\`, the app migrates it on first run — but moving the file yourself is safer for beta.
+2. If you still have data only in `%AppData%\com.x2ko.notes\`, the app migrates it on first run — but moving the file yourself is safer.
 3. Optional: export a JSON backup from Settings in the old app.
 
 Replacing or updating the portable `.exe` **does not delete** your notes folder.
@@ -39,17 +41,9 @@ Future releases publish to `latest-portable.json`, not the old installer channel
 ## Build (maintainers)
 
 ```powershell
-# Requires TAURI_SIGNING_PRIVATE_KEY (and optional TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
-# for updater .sig files — same key as tauri.conf.json pubkey.
-$env:TAURI_SIGNING_PRIVATE_KEY = "<your-minisign-private-key>"
 pnpm tauri:build:portable
 ```
 
-Then upload the built exe to GitHub as `2XKO.Notes_<ver>_x64-portable.exe` and run:
-
-```bash
-pnpm latest:portable 0.5.0
-pnpm publish:updates
-```
+Then publish with `pnpm publish:release` and update `updates-channel/` as needed.
 
 **Important:** keep `updates-channel/latest.json` at **v0.4.7** so old installer clients are not pushed to portable.

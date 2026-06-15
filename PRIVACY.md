@@ -2,6 +2,10 @@
 
 **2XKO Notes** — Last updated: June 2026
 
+Free community tool for competitive 2XKO players. Your notes stay yours — on your device.
+
+*Herramienta gratuita para la escena competitiva. Tus notas son tuyas — en tu dispositivo.*
+
 ---
 
 ## English

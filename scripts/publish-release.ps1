@@ -22,6 +22,8 @@ if (-not (Test-Path $zip)) {
 $notes = @"
 ## 2XKO Notes v$Version (portable)
 
+Built with care for the competitive 2XKO scene.
+
 1. Download the **.zip** and extract everything.
 2. Run **2XKO Notes.exe** inside the **2XKO Notes** folder.
 3. Notes are stored in ``Documentos\2XKO Notes\2xko-notes.sync.json``

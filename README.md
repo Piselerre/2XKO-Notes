@@ -1,9 +1,21 @@
 # 2XKO Notes
 
-Competitive note-taking for **2XKO**: combos, matchups, players, and more.  
-Built by [@PixelR_](https://twitter.com/PixelR_).
+**Hecho con cariño para la escena competitiva de 2XKO.**  
+Una herramienta gratuita para organizar matchups, combos, intel de rivales y notas de equipo — para que subamos de nivel juntos.
+
+*Built with care for the competitive 2XKO scene — free note-taking so we all level up together.*
+
+By [@PixelR_](https://twitter.com/PixelR_).
 
 **License:** [MIT](LICENSE) · **Privacy:** [PRIVACY.md](PRIVACY.md) · **Code signing:** [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md)
+
+---
+
+## Why this exists / Por qué existe
+
+Ranked y torneos se ganan con preparación. 2XKO Notes nace para que la comunidad tenga un sitio claro donde guardar lo que importa: qué hacer en neutral, cómo punishear, qué hace cada rival en los sets que ya jugaste, y las rutas que estás labeando.
+
+No es un producto comercial — es un aporte a la escena. Si te ayuda en tu grind, compártelo con tu training partner o tu equipo.
 
 ---
 
@@ -27,7 +39,7 @@ See **[docs/PORTABLE_RELEASE.md](docs/PORTABLE_RELEASE.md)** for beta tester mig
 
 ## Android (beta)
 
-A **mobile APK** for Android is available for beta testers. It shares the same data model as desktop (local save + Google Drive sync).
+A **mobile APK** for Android is available for beta testers. Same data model as desktop — prep on the go before locals or majors.
 
 ---
 
@@ -35,11 +47,11 @@ A **mobile APK** for Android is available for beta testers. It shares the same d
 
 | Section | What it's for |
 | ------- | ------------- |
-| **Combos** | Notes and setups per character |
-| **Matchups** | What to do against each opponent |
-| **Players** | Habits and tendencies of players you know |
+| **Combos** | Lab routes, setups, and character notes |
+| **Matchups** | Game plan per opponent — neutral, round start, punishes |
+| **Players** | Opponent habits and tournament intel |
 | **Frame Data** | Link to the official 2XKO wiki |
-| **Teams** | Duo notes (from Combos) |
+| **Teams** | Duo strategy and coordination |
 
 - **No Save button** — everything autosaves.
 - Your data lives in **`Documents/2XKO Notes/`** on your PC (not inside the `.exe`).
@@ -55,10 +67,10 @@ A **mobile APK** for Android is available for beta testers. It shares the same d
 
 ---
 
-## Support the project
+## Support the scene
 
-2XKO Notes isn't free to maintain (time, testing, release hosting).  
-If it helps your ranked or tournament prep:
+Maintaining and improving this tool takes real time — testing, releases, listening to players.  
+If 2XKO Notes helps your ranked or tournament prep, a coffee keeps it alive for the community:
 
 **[Ko-fi — support PixelR](https://ko-fi.com/PixelR)**
 
@@ -73,7 +85,7 @@ Re-download the latest portable from Releases. You need **WebView2** (Windows 10
 Check Settings → data file path (`Documents/2XKO Notes/`). Import a `.json` backup if you have one. Check `Documents/2XKO Notes/backups/`.
 
 **Bug or suggestion**  
-Open a [GitHub Issue](https://github.com/Piselerre/2XKO-Notes/issues) or message [@PixelR_](https://twitter.com/PixelR_).
+Open a [GitHub Issue](https://github.com/Piselerre/2XKO-Notes/issues) or message [@PixelR_](https://twitter.com/PixelR_). Feedback from the scene shapes every update.
 
 ---
 
@@ -83,4 +95,4 @@ Open a [GitHub Issue](https://github.com/Piselerre/2XKO-Notes/issues) or message
 - [Privacy Policy](PRIVACY.md) — English / Español
 - [Code Signing Policy](CODE_SIGNING_POLICY.md) — English / Español
 
-2XKO Notes is a fan-made tool. Not affiliated with Riot Games or 2XKO.
+2XKO Notes is a fan-made community tool. Not affiliated with Riot Games or 2XKO.

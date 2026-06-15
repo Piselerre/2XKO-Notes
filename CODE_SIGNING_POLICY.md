@@ -2,6 +2,7 @@
 
 **2XKO Notes** — Windows releases
 
+Community tool for competitive 2XKO note-taking.  
 Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
 
 ---

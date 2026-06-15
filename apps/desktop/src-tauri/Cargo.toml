@@ -1,7 +1,7 @@
 [package]
 name = "x2ko-notes"
 version = "0.1.0"
-description = "2XKO Notes - Competitive notes app"
+description = "2XKO Notes — competitive note-taking for the 2XKO community"
 authors = ["PixelR"]
 edition = "2021"
 
@@ -18,9 +18,11 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
 urlencoding = "2"
 tauri-plugin-process = "2"
+tauri-plugin-deep-link = "2"
 
 [profile.release]
 panic = "abort"
