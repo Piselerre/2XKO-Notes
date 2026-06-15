@@ -1,6 +1,18 @@
 {
-  "version": 3,
+  "version": 4,
   "announcements": [
+    {
+      "id": "portable-v050",
+      "enabled": true,
+      "priority": 10,
+      "type": "warning",
+      "title": "Portable v0.5.0 is here",
+      "body": "The old Windows installer (v0.4.x) will not auto-update anymore. Download the portable build from GitHub. Your notes stay in Documents\\2XKO Notes\\2xko-notes.sync.json — move that file there if you still have it elsewhere.",
+      "dismissible": true,
+      "showOnce": true,
+      "expiresAt": "2027-06-01T00:00:00Z",
+      "link": "https://github.com/Piselerre/2XKO-Notes/releases"
+    },
     {
       "id": "roster-senna-thresh",
       "enabled": true,

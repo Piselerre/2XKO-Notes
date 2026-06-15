@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "channel": "stable",
+  "channel": "stable-portable",
   "app": {
-    "minVersion": "0.4.4",
-    "latestVersion": "0.4.6",
+    "minVersion": "0.5.0",
+    "latestVersion": "0.5.0",
     "binaryUpdateRequired": true
   },
   "characters": {
@@ -14,14 +14,14 @@
     "url": "/remote/announcements.json"
   },
   "frontend": {
-    "version": "0.4.6",
+    "version": "0.5.0",
     "bundleUrl": null
   },
   "updater": {
     "enabled": true,
     "endpoints": [
-      "https://raw.githubusercontent.com/Piselerre/2XKO-Notes-Updates/main/latest.json"
+      "https://raw.githubusercontent.com/Piselerre/2XKO-Notes/main/updates-channel/latest-portable.json"
     ],
-    "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFMTgzQUE2NjQ5NENDMjcKUldRbnpKUmtwam9ZN2h6aWxZOFQvV3QxWTgvSklCY0RqYW1DRGtRc0VROGZrL3RzUDkyV1RkcnkK"
+    "pubkey": null
   }
 }

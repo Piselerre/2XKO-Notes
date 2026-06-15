@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 
 import { Layout } from '@/components/Layout';
 import { useAppStore } from '@2xko/core';
@@ -6,7 +7,7 @@ import type { AppData } from '@2xko/core';
 import { APP_VERSION } from '@/constants/version';
 import { getDataFilePath, saveToDataFile, SYNC_FILENAME } from '@/services/fileStorage';
 import { connectGoogleDrive, disconnectGoogleDrive } from '@/services/googleDrive';
-import { isDesktopApp } from '@/utils/isDesktopApp';
+import { isTauriHost } from '@/utils/platform';
 import { checkForUpdates, type UpdateCheckResult } from '@/services/remote';
 import { DevSettingsPanel } from '@/components/DevSettingsPanel';
 import { BlockingModal } from '@/components/BlockingModal';
@@ -57,6 +58,46 @@ function LanguageSwitch() {
   );
 }
 
+function UiScaleControl() {
+  const uiScale = useAppStore((s) => s.uiScale);
+  const setUiScale = useAppStore((s) => s.setUiScale);
+  const { t } = useI18n();
+  const presets = [
+    { value: 85, label: t('settings.uiScaleSmall') },
+    { value: 100, label: t('settings.uiScaleNormal') },
+    { value: 115, label: t('settings.uiScaleLarge') },
+    { value: 130, label: t('settings.uiScaleXl') },
+  ];
+
+  return (
+    <div className="ui-scale-control mt-3">
+      <div className="ui-scale-control__presets">
+        {presets.map((p) => (
+          <button
+            key={p.value}
+            type="button"
+            className={`ui-scale-control__btn${uiScale === p.value ? ' is-active' : ''}`}
+            onClick={() => setUiScale(p.value)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <input
+        type="range"
+        min={75}
+        max={150}
+        step={5}
+        value={uiScale}
+        onChange={(e) => setUiScale(Number(e.target.value))}
+        className="ui-scale-control__range mt-3 w-full"
+        aria-label={t('settings.uiScale')}
+      />
+      <p className="mt-1 text-xs text-text-muted">{uiScale}%</p>
+    </div>
+  );
+}
+
 export function SettingsScreen() {
   const syncMeta = useAppStore((s) => s.syncMeta);
   const setSyncStatus = useAppStore((s) => s.setSyncStatus);
@@ -70,12 +111,18 @@ export function SettingsScreen() {
   const [driveError, setDriveError] = useState('');
   const [updatesIgnored, setIgnoredState] = useState(areUpdatesIgnored());
   const [ignoreConfirmOpen, setIgnoreConfirmOpen] = useState(false);
-  const desktopApp = isDesktopApp();
+  const [legacyInstaller, setLegacyInstaller] = useState(false);
+  const tauriApp = isTauriHost();
   const { t } = useI18n();
 
   useEffect(() => {
     getDataFilePath().then(setDataPath);
-  }, []);
+    if (tauriApp) {
+      void invoke<string>('get_distribution_kind')
+        .then((kind) => setLegacyInstaller(kind === 'legacy_installer'))
+        .catch(() => {});
+    }
+  }, [tauriApp]);
 
   useEffect(() => {
     document.documentElement.lang = useAppStore.getState().locale;
@@ -161,10 +208,21 @@ export function SettingsScreen() {
         <LanguageSwitch />
 
         <section className="xko-panel">
+          <h2 className="font-display text-xs font-bold tracking-widest text-text-muted uppercase">
+            {t('settings.uiScale')}
+          </h2>
+          <p className="mt-2 text-xs text-text-muted">{t('settings.uiScaleDesc')}</p>
+          <UiScaleControl />
+        </section>
+
+        <section className="xko-panel">
           <h2 className="font-display text-xs font-bold tracking-widest text-accent uppercase">
             {t('settings.updates')}
           </h2>
           <p className="mt-2 text-xs text-text-muted">v{APP_VERSION}</p>
+          {legacyInstaller && (
+            <p className="mt-2 text-xs leading-relaxed text-accent-secondary">{t('settings.legacyInstallerHint')}</p>
+          )}
           <button
             type="button"
             onClick={() => void handleCheckUpdate()}
@@ -236,7 +294,7 @@ export function SettingsScreen() {
             {t('settings.googleDrive')}
           </h2>
           <p className="mt-2 text-xs text-text-muted">{t('settings.driveDesc')}</p>
-          {!desktopApp && (
+          {!tauriApp && (
             <p className="mt-2 text-xs text-amber-400/90">{t('settings.driveDesktopOnly')}</p>
           )}
           {syncMeta.googleConnected ? (
@@ -250,7 +308,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 onClick={() => void handleDisconnectGoogle()}
-                disabled={driveBusy || !desktopApp}
+                disabled={driveBusy || !tauriApp}
                 className="link-pink"
               >
                 {t('settings.disconnect')}
@@ -260,7 +318,7 @@ export function SettingsScreen() {
             <button
               type="button"
               onClick={() => void handleConnectGoogle()}
-              disabled={driveBusy || !desktopApp}
+              disabled={driveBusy || !tauriApp}
               className="xko-btn xko-btn--lime mt-3"
             >
               {driveBusy ? t('settings.driveConnecting') : t('settings.connectDrive')}

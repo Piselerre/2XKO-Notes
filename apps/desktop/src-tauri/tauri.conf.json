@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "2XKO Notes",
   "mainBinaryName": "2XKO Notes",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "identifier": "com.x2ko.notes",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -17,15 +17,15 @@
         "title": "2XKO Notes",
         "width": 1280,
         "height": 800,
-        "minWidth": 900,
-        "minHeight": 600,
+        "minWidth": 360,
+        "minHeight": 500,
         "resizable": true,
         "fullscreen": false
       }
     ],
     "security": {
       "csp": null,
-      "capabilities": ["default"]
+      "capabilities": ["default", "desktop", "mobile"]
     }
   },
   "bundle": {
@@ -41,19 +41,40 @@
       "icons/icon.ico"
     ],
     "createUpdaterArtifacts": true,
+    "licenseFile": "windows/license.txt",
     "resources": [
       "oauth_credentials.json"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "windows/header.bmp",
+        "sidebarImage": "windows/sidebar.bmp",
+        "installerHooks": "windows/installer-hooks.nsh",
+        "languages": ["English"],
+        "displayLanguageSelector": false
+      }
+    }
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFMTgzQUE2NjQ5NENDMjcKUldRbnpKUmtwam9ZN2h6aWxZOFQvV3QxWTgvSklCY0RqYW1DRGtRc0VROGZrL3RzUDkyV1RkcnkK",
       "endpoints": [
-        "https://raw.githubusercontent.com/Piselerre/2XKO-Notes-Updates/main/latest.json"
+        "https://raw.githubusercontent.com/Piselerre/2XKO-Notes/main/updates-channel/latest-portable.json"
       ],
       "windows": {
-        "installMode": "passive"
+        "installMode": "quiet"
       }
+    },
+    "deep-link": {
+      "mobile": [
+        {
+          "scheme": ["com.x2ko.notes"],
+          "host": "oauth",
+          "path": ["/callback"]
+        }
+      ]
     }
   }
 }

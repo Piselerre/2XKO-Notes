@@ -1,11 +1,16 @@
-/** Public update channel (source code stays in a private repo). */
-export const PUBLIC_UPDATES_REPO = 'Piselerre/2XKO-Notes-Updates';
+/** Public update metadata lives in the main repo (updates-channel/). */
+export const PUBLIC_UPDATES_REPO = 'Piselerre/2XKO-Notes';
 
-export const PUBLIC_MANIFEST_URL =
-  `https://raw.githubusercontent.com/${PUBLIC_UPDATES_REPO}/main/app-manifest.json`;
+const RAW_MAIN = `https://raw.githubusercontent.com/${PUBLIC_UPDATES_REPO}/main/updates-channel`;
 
-export const PUBLIC_UPDATER_URL =
-  `https://raw.githubusercontent.com/${PUBLIC_UPDATES_REPO}/main/latest.json`;
+export const PUBLIC_MANIFEST_URL = `${RAW_MAIN}/app-manifest.json`;
 
-export const PUBLIC_ANNOUNCEMENTS_URL =
-  `https://raw.githubusercontent.com/${PUBLIC_UPDATES_REPO}/main/announcements.json`;
+/** Legacy NSIS installer channel (0.4.x only — capped at 0.4.7). */
+export const PUBLIC_UPDATER_URL = `${RAW_MAIN}/latest.json`;
+
+/** Portable zip channel (0.5.0+). */
+export const PUBLIC_PORTABLE_UPDATER_URL = `${RAW_MAIN}/latest-portable.json`;
+
+export const PUBLIC_ANNOUNCEMENTS_URL = `${RAW_MAIN}/announcements.json`;
+
+export const PUBLIC_CHARACTERS_URL = `${RAW_MAIN}/characters.json`;

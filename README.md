@@ -5,21 +5,25 @@ Built by [@PixelR_](https://twitter.com/PixelR_).
 
 ---
 
-## Download & install (Windows)
+## Download (Windows portable — v0.5.0+)
 
 1. Go to **[Releases](https://github.com/Piselerre/2XKO-Notes/releases)** on GitHub.
-2. Download the latest installer (`2XKO Notes_x64-setup.exe`).
-3. Run it and follow the setup wizard.
-4. Open **2XKO Notes** from the Start menu.
+2. Download **`2XKO.Notes_<version>_x64-portable.exe`**.
+3. Run it from any folder. No install wizard.
 
-> If Windows shows SmartScreen, choose **More info → Run anyway** (code-signing certs cost €200+, and I'm not paying that xD).
+> First run only: if Windows SmartScreen appears, choose **More info → Run anyway** (code signing is planned for a later release).
+
+### Still on the old installer (v0.4.x)?
+
+That version **will not auto-update** to v0.5.0. Download the portable build manually. Your notes stay in **`Documents/2XKO Notes/2xko-notes.sync.json`**.
+
+See **[docs/PORTABLE_RELEASE.md](docs/PORTABLE_RELEASE.md)** for beta tester migration steps.
 
 ---
 
-## Android (coming soon)
+## Android (beta)
 
-A **mobile APK** for Android is in development so you can carry your notes on the go.  
-It will share the same data model as the desktop app (local save + planned cloud sync).
+A **mobile APK** for Android is available for beta testers. It shares the same data model as desktop (local save + Google Drive sync).
 
 ---
 
@@ -34,7 +38,7 @@ It will share the same data model as the desktop app (local save + planned cloud
 | **Teams** | Duo notes (from Combos) |
 
 - **No Save button** — everything autosaves.
-- Your data lives on your PC (`%AppData%\com.x2ko.notes\`).
+- Your data lives in **`Documents/2XKO Notes/`** on your PC (not inside the `.exe`).
 - In **Settings** you can export/import a JSON backup.
 - **VIEW** mode reads notes; **EDIT** mode edits them.
 
@@ -42,8 +46,8 @@ It will share the same data model as the desktop app (local save + planned cloud
 
 ## Updates
 
-In **Settings → Check for updates** to see if a newer version is on GitHub.  
-You can also check [Releases](https://github.com/Piselerre/2XKO-Notes/releases) manually.
+**Portable v0.5.0+** updates silently in the background (download + restart).  
+**Old installer v0.4.x** — check [Releases](https://github.com/Piselerre/2XKO-Notes/releases) manually for the portable build.
 
 ---
 
@@ -56,28 +60,13 @@ If it helps your ranked or tournament prep:
 
 ---
 
-## Short-term roadmap
-
-- [ ] **Android APK** (mobile app)
-- [ ] Google Drive sync (same account across PCs and Android)
-- [ ] In-app auto-update
-- [ ] Decision flowcharts in the note editor
-- [ ] Team Notes easier to reach from the main menu
-- [ ] More visual polish and community feedback
-
----
-
 ## Common issues
 
 **Won't open / blank screen**  
-Reinstall from the latest Release. You need **WebView2** (Windows 10/11 usually includes it).
+Re-download the latest portable from Releases. You need **WebView2** (Windows 10/11 usually includes it).
 
 **Lost my notes**  
-Check Settings → data file path. If you have an exported `.json`, import it there.
+Check Settings → data file path (`Documents/2XKO Notes/`). Import a `.json` backup if you have one. Check `Documents/2XKO Notes/backups/`.
 
 **Bug or suggestion**  
 Open a [GitHub Issue](https://github.com/Piselerre/2XKO-Notes/issues) or message [@PixelR_](https://twitter.com/PixelR_).
-
----
-
-*Current version: see Releases on GitHub.*

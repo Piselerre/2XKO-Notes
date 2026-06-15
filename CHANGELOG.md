@@ -1,7 +1,42 @@
 # Changelog
 
 All notable user-facing changes to **2XKO Notes**.  
-Version **0.5** will mark the first major release once the updater pipeline is fully polished.
+
+---
+
+## [0.5.0] — 2026-06-12
+
+### Added
+- **Portable Windows build** — single `.exe`, no install wizard, no admin rights
+- Silent auto-updates for portable only (replaces the `.exe` in place; notes stay in Documents)
+- Notice for users still on the retired **v0.4.x installer** with a link to download portable manually
+
+### Changed
+- **Auto-update channel split:** `latest.json` stays on v0.4.7 for old installers; portable uses `latest-portable.json`
+- Data path remains **`Documents/2XKO Notes/2xko-notes.sync.json`** (outside the portable `.exe`)
+
+### Beta testers
+- Move your existing `2xko-notes.sync.json` into `Documents/2XKO Notes/` before first launch if it is stored elsewhere
+- The portable build will **not** auto-install on top of the old installer — download v0.5.0 portable from GitHub once
+
+---
+
+## [0.4.7] — 2026-06-13
+
+### Added
+- **Android app (beta):** bottom navigation, touch-friendly editor, input glyph sheet
+- Branded Windows installer (English) with note that your data is kept on reinstall
+- Uninstall checkbox to optionally delete local notes in Documents
+- Clearer binary update modal with visible download progress bar
+
+### Improved
+- Notes stored in **Documents/2XKO Notes/** — survive reinstall and uninstall (unless you opt in to delete)
+- Mobile editor: larger touch targets, scrollable toolbar, 16px text (no zoom jump)
+- Update progress shows percentage and bar in header pill + modal
+
+### Fixed
+- Binary update progress sometimes stuck at 0%
+- Data recovery when localStorage is empty after reinstall
 
 ---
 

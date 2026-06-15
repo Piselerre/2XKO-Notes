@@ -1,7 +1,7 @@
 {
   "name": "@2xko/desktop",
   "private": true,
-  "version": "0.4.6",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:portable": "powershell -ExecutionPolicy Bypass -File ../../scripts/build-portable.ps1",
+    "tauri:android:init": "tauri android init",
+    "tauri:android:dev": "tauri android dev",
+    "tauri:android:build": "tauri android build --apk"
   },
   "dependencies": {
     "@2xko/core": "workspace:*",

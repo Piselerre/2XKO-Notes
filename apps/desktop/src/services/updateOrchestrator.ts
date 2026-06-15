@@ -1,5 +1,8 @@
-import { APP_VERSION } from '@/constants/version';
-import { isDesktopApp } from '@/utils/isDesktopApp';
+import { invoke } from '@tauri-apps/api/core';
+
+import { APP_VERSION, IS_PORTABLE_BUILD, PORTABLE_CHANNEL_MIN_VERSION } from '@/constants/version';
+import { PUBLIC_PORTABLE_UPDATER_URL } from '@/constants/updates';
+import { isDesktopApp } from '@/utils/platform';
 import {
   mergeCharacterLists,
 } from '@/data/manifest';
@@ -12,6 +15,7 @@ import {
 import { checkForUpdates } from '@/services/remote';
 import { fetchAnnouncements, clearAnnouncementsCache } from '@/services/remote';
 import { setJustUpdatedVersion } from '@/utils/updatePreferences';
+import { isAtLeastVersion, isMajorBump, isNewerVersion } from '@/utils/versionCompare';
 
 export type UpdatePhase =
   | 'idle'
@@ -24,34 +28,37 @@ export type UpdatePhase =
 export type UpdatePlan =
   | { kind: 'none' }
   | { kind: 'content'; manifest: AppManifest }
-  | { kind: 'binary'; version: string };
+  | { kind: 'binary'; version: string; silent?: boolean; zipUrl?: string };
 
 type PendingUpdate = {
   install: () => Promise<void>;
   version: string;
+  mode: 'zip' | 'tauri';
 };
 
 let pendingBinary: PendingUpdate | null = null;
 
-function parseVersionParts(v: string): number[] {
-  return v.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
+function canReceivePortableBinaryUpdate(currentVersion: string, remoteVersion: string): boolean {
+  if (!isAtLeastVersion(remoteVersion, PORTABLE_CHANNEL_MIN_VERSION)) return true;
+  return IS_PORTABLE_BUILD || isAtLeastVersion(currentVersion, PORTABLE_CHANNEL_MIN_VERSION);
 }
 
-function isNewerVersion(remote: string, current: string): boolean {
-  const a = parseVersionParts(remote);
-  const b = parseVersionParts(current);
-  const len = Math.max(a.length, b.length);
-  for (let i = 0; i < len; i += 1) {
-    const diff = (a[i] ?? 0) - (b[i] ?? 0);
-    if (diff !== 0) return diff > 0;
+async function fetchPortableZipUrl(): Promise<{ version: string; url: string } | null> {
+  try {
+    const res = await fetch(PUBLIC_PORTABLE_UPDATER_URL, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      version?: string;
+      format?: string;
+      platforms?: { 'windows-x86_64'?: { url?: string } };
+    };
+    const version = (json.version ?? '').replace(/^v/i, '');
+    const url = json.platforms?.['windows-x86_64']?.url;
+    if (!version || !url || json.format !== 'zip') return null;
+    return { version, url };
+  } catch {
+    return null;
   }
-  return false;
-}
-
-function isMajorBump(remote: string, current: string): boolean {
-  const a = parseVersionParts(remote);
-  const b = parseVersionParts(current);
-  return (a[0] ?? 0) > (b[0] ?? 0) || (a[1] ?? 0) > (b[1] ?? 0);
 }
 
 /** Decide whether this release needs a full installer or only remote content. */
@@ -70,21 +77,43 @@ export async function checkUpdatePlan(currentVersion: string = APP_VERSION): Pro
   }
 
   if (needsNewerApp && binaryRequired) {
+    if (!canReceivePortableBinaryUpdate(currentVersion, remoteVersion ?? currentVersion)) {
+      return { kind: 'none' };
+    }
+
+    if (IS_PORTABLE_BUILD && isDesktopApp()) {
+      const portable = await fetchPortableZipUrl();
+      if (portable && isNewerVersion(portable.version, currentVersion)) {
+        return {
+          kind: 'binary',
+          version: portable.version,
+          silent: true,
+          zipUrl: portable.url,
+        };
+      }
+    }
+
     if (isDesktopApp()) {
       try {
         const { check } = await import('@tauri-apps/plugin-updater');
         const update = await check();
         if (update) {
-          return { kind: 'binary', version: update.version.replace(/^v/i, '') };
+          return {
+            kind: 'binary',
+            version: update.version.replace(/^v/i, ''),
+            silent: IS_PORTABLE_BUILD,
+          };
         }
       } catch (e) {
         console.warn('checkUpdatePlan (tauri):', e);
       }
     }
 
-    const github = await checkForUpdates(currentVersion);
-    if (github.status === 'available') {
-      return { kind: 'binary', version: github.version };
+    if (IS_PORTABLE_BUILD || isAtLeastVersion(currentVersion, PORTABLE_CHANNEL_MIN_VERSION)) {
+      const github = await checkForUpdates(currentVersion);
+      if (github.status === 'available') {
+        return { kind: 'binary', version: github.version, silent: IS_PORTABLE_BUILD };
+      }
     }
   }
 
@@ -125,6 +154,28 @@ export async function prepareBinaryUpdate(
 ): Promise<boolean> {
   if (!isDesktopApp()) return false;
 
+  if (plan.zipUrl) {
+    try {
+      onProgress(2);
+      const zipPath = `C:\\Windows\\Temp\\2xko-update-${plan.version}.zip`;
+      onProgress(10);
+      await invoke('download_file', { url: plan.zipUrl, dest: zipPath });
+      onProgress(100);
+      pendingBinary = {
+        version: plan.version,
+        mode: 'zip',
+        install: async () => {
+          await invoke('apply_portable_zip_update', { zipPath });
+        },
+      };
+      return true;
+    } catch (e) {
+      console.warn('prepareBinaryUpdate (zip):', e);
+      pendingBinary = null;
+      return false;
+    }
+  }
+
   try {
     const { check } = await import('@tauri-apps/plugin-updater');
     const update = await check();
@@ -136,12 +187,15 @@ export async function prepareBinaryUpdate(
     await update.download((event) => {
       if (event.event === 'Started') {
         total = event.data.contentLength ?? 0;
-        onProgress(0);
+        onProgress(1);
       }
       if (event.event === 'Progress') {
         downloaded += event.data.chunkLength;
         if (total > 0) {
-          onProgress(Math.min(99, Math.round((downloaded / total) * 100)));
+          onProgress(Math.min(99, Math.max(1, Math.round((downloaded / total) * 100))));
+        } else {
+          const est = Math.min(90, Math.round(downloaded / 500_000));
+          onProgress(Math.max(1, est));
         }
       }
       if (event.event === 'Finished') {
@@ -151,6 +205,7 @@ export async function prepareBinaryUpdate(
 
     pendingBinary = {
       version: plan.version,
+      mode: 'tauri',
       install: async () => {
         await update.install();
       },
@@ -163,10 +218,17 @@ export async function prepareBinaryUpdate(
   }
 }
 
-export async function installPreparedUpdate(version: string): Promise<void> {
+export async function installPreparedUpdate(version: string, options?: { silent?: boolean }): Promise<void> {
   if (!pendingBinary) return;
-  setJustUpdatedVersion(version);
+  if (!options?.silent) {
+    setJustUpdatedVersion(version);
+  }
   await pendingBinary.install();
+  if (pendingBinary.mode === 'zip') {
+    const { exit } = await import('@tauri-apps/plugin-process');
+    await exit(0);
+    return;
+  }
   const { relaunch } = await import('@tauri-apps/plugin-process');
   await relaunch();
 }
