@@ -67,21 +67,38 @@ pub fn apply_portable_zip_update(zip_path: String) -> Result<(), String> {
 
         let script = extract_dir.join("_apply_update.ps1");
         let inner = find_payload_dir(&extract_dir).unwrap_or_else(|| extract_dir.clone());
+        let parent = target
+            .parent()
+            .map(|p| p.to_string_lossy().replace('\'', "''"))
+            .unwrap_or_else(|| target.to_string_lossy().replace('\'', "''"));
+        let extract_root = extract_dir.to_string_lossy().replace('\'', "''");
         let script_body = format!(
             r#"
 $ErrorActionPreference = 'Stop'
 $src = '{src}'
 $dst = '{dst}'
+$parent = '{parent}'
+$extractRoot = '{extract_root}'
 Start-Sleep -Seconds 2
 Get-Process -Name '2XKO Notes' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
+Get-ChildItem -LiteralPath $extractRoot -Recurse -Force | Unblock-File -ErrorAction SilentlyContinue
 Copy-Item -Path (Join-Path $src '*') -Destination $dst -Recurse -Force
+foreach ($name in @('Iniciar 2XKO Notes.bat', 'LEEME.txt')) {{
+  $launcher = Join-Path $parent $name
+  $from = Join-Path $extractRoot $name
+  if (Test-Path $from) {{ Copy-Item -LiteralPath $from -Destination $launcher -Force }}
+}}
+Get-ChildItem -LiteralPath $dst -Recurse -Force | Unblock-File -ErrorAction SilentlyContinue
+Get-ChildItem -LiteralPath $parent -Force -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
 $exe = Join-Path $dst '2XKO Notes.exe'
 if (Test-Path $exe) {{ Start-Process -FilePath $exe }}
 Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
 "#,
             src = inner.to_string_lossy().replace('\'', "''"),
             dst = target.to_string_lossy().replace('\'', "''"),
+            parent = parent,
+            extract_root = extract_root,
             script = script.to_string_lossy().replace('\'', "''"),
         );
         fs::write(&script, script_body).map_err(|e| e.to_string())?;
@@ -110,6 +127,10 @@ Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
 }
 
 fn find_payload_dir(root: &Path) -> Option<PathBuf> {
+    let nested = root.join("2XKO Notes");
+    if nested.join("2XKO Notes.exe").is_file() {
+        return Some(nested);
+    }
     let direct_exe = root.join("2XKO Notes.exe");
     if direct_exe.is_file() {
         return Some(root.to_path_buf());

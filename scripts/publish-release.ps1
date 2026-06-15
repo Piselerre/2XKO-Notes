@@ -1,6 +1,7 @@
 # Build portable zip and publish GitHub release on Piselerre/2XKO-Notes
 param(
-  [string]$Version = "0.5.0"
+  [string]$Version = "0.5.0",
+  [switch]$Replace
 )
 
 Set-Location $PSScriptRoot\..
@@ -21,24 +22,25 @@ if (-not (Test-Path $zip)) {
 $notes = @"
 ## 2XKO Notes v$Version (portable)
 
-- Descarga el **.zip**, extrae la carpeta y ejecuta **2XKO Notes.exe**
-- Sin instalador, sin admin, sin certificado
-- Notas en ``Documentos\2XKO Notes\2xko-notes.sync.json``
-- Si vienes del instalador v0.4.x: descarga esto manualmente (no auto-actualiza)
-- Actualizaciones futuras solo para esta version portable
+1. Descarga el **.zip** y extrae todo.
+2. Ejecuta **`Iniciar 2XKO Notes.bat`** (no el .exe directamente la primera vez).
+   El .bat quita el bloqueo de SmartScreen/Defender antes de abrir la app.
+3. Si Windows aun avisa la primera vez: **Mas informacion -> Ejecutar de todas formas** (solo una vez).
+4. Notas en ``Documentos\2XKO Notes\2xko-notes.sync.json``
 "@
 
-Write-Host "Creating GitHub release v$Version..."
-gh release view "v$Version" 2>$null
-if ($LASTEXITCODE -eq 0) {
-  gh release upload "v$Version" $zip --clobber
-} else {
-  gh release create "v$Version" $zip --title "2XKO Notes v$Version (portable)" --notes $notes
+$tag = "v$Version"
+if ($Replace -or (gh release view $tag 2>$null)) {
+  Write-Host "Replacing release $tag..."
+  gh release delete $tag --yes 2>$null
 }
 
+Write-Host "Creating GitHub release $tag..."
+gh release create $tag $zip --title "2XKO Notes v$Version (portable)" --notes $notes
+
 if ($LASTEXITCODE -ne 0) {
-  Write-Warning "gh release failed (run: gh auth login). Zip is ready at: $zip"
+  Write-Warning "gh release failed. Zip is ready at: $zip"
   exit 1
 }
 
-Write-Host "Published: https://github.com/Piselerre/2XKO-Notes/releases/tag/v$Version"
+Write-Host "Published: https://github.com/Piselerre/2XKO-Notes/releases/tag/$tag"

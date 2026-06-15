@@ -11,7 +11,7 @@ Built by [@PixelR_](https://twitter.com/PixelR_).
 2. Download **`2XKO.Notes_<version>_x64-portable.exe`**.
 3. Run it from any folder. No install wizard.
 
-> First run only: if Windows SmartScreen appears, choose **More info → Run anyway** (code signing is planned for a later release).
+> Extract the portable zip and run **`Iniciar 2XKO Notes.bat`** (not the `.exe` directly). If Windows SmartScreen still appears the first time, choose **More info → Run anyway**.
 
 ### Still on the old installer (v0.4.x)?
 
