@@ -3,7 +3,7 @@
   "channel": "stable-portable",
   "app": {
     "minVersion": "0.5.0",
-    "latestVersion": "0.5.0",
+    "latestVersion": "0.5.1",
     "binaryUpdateRequired": true
   },
   "characters": {
@@ -14,7 +14,7 @@
     "url": "/remote/announcements.json"
   },
   "frontend": {
-    "version": "0.5.0",
+    "version": "0.5.1",
     "bundleUrl": null
   },
   "updater": {

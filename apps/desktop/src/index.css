@@ -2526,10 +2526,94 @@ body::after {
   align-items: center;
   flex-wrap: nowrap;
   gap: 0;
-  padding: 0.3rem 0.5rem;
+  padding: 0.22rem 0.5rem;
   min-height: 0;
   min-width: min-content;
   width: max-content;
+}
+
+.editor-toolbar__left-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.editor-toolbar__text-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.editor-toolbar__text-row .editor-toolbar__sep {
+  align-self: center;
+  height: 1rem;
+  margin: 0 0.35rem;
+}
+
+.input-char-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.1rem;
+  max-width: 100%;
+}
+
+.input-char-row--toolbar {
+  padding: 0;
+}
+
+.input-char-row--sheet {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(212, 255, 0, 0.12);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inputs-float__btn--character {
+  padding: 0;
+  overflow: hidden;
+  line-height: 0;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.inputs-float__btn--character .img-skeleton {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border-radius: 0;
+}
+
+.inputs-float__glyph--character {
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+
+.input-char-row--toolbar .inputs-float__btn--character .inputs-float__glyph--character,
+.inputs-float--toolbar .inputs-float__btn--character .inputs-float__glyph--character {
+  width: 100%;
+  height: 100%;
+}
+
+.visual-editor .ve-glyph--character {
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: cover;
+  border-radius: 2px;
+  vertical-align: middle;
 }
 
 .editor-toolbar__group {
@@ -2549,6 +2633,7 @@ body::after {
 .editor-toolbar__group--inputs {
   flex: 0 0 auto;
   flex-shrink: 0;
+  align-self: center;
 }
 
 .editor-toolbar__sep {
@@ -2565,10 +2650,17 @@ body::after {
   flex-shrink: 0;
 }
 
+.editor-toolbar__sep--inputs {
+  align-self: center;
+  height: calc(3 * 1.5rem + 2 * 0.09rem);
+  margin: 0 0.4rem;
+}
+
 /* Unified toolbar control — edit, style, block, 2XKO inputs */
 .editor-toolbar .ribbon-btn,
 .inputs-float--toolbar .inputs-float__btn,
-.inputs-float--toolbar .inputs-float__mod-btn {
+.inputs-float--toolbar .inputs-float__mod-btn,
+.input-char-row--toolbar .inputs-float__btn {
   box-sizing: border-box;
   flex-shrink: 0;
   background: rgba(18, 22, 14, 0.82);
@@ -2588,7 +2680,8 @@ body::after {
 
 .editor-toolbar .ribbon-btn:hover:not(:disabled),
 .inputs-float--toolbar .inputs-float__btn:hover,
-.inputs-float--toolbar .inputs-float__mod-btn:hover {
+.inputs-float--toolbar .inputs-float__mod-btn:hover,
+.input-char-row--toolbar .inputs-float__btn:hover {
   color: #eef0f6;
   background: rgba(30, 36, 22, 0.95);
   border-color: rgba(212, 255, 0, 0.32);
@@ -3698,6 +3791,36 @@ body::after {
   height: 1.55rem;
   padding: 0.1rem;
   border-radius: 4px;
+}
+
+.input-char-row--toolbar .inputs-float__btn {
+  flex: 0 0 auto;
+  min-width: 1.55rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.input-char-row--sheet .inputs-float__btn--character {
+  min-width: 2.4rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+}
+
+.input-char-row--sheet .inputs-float__btn {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  background: rgba(18, 22, 14, 0.82);
+  border: 1px solid rgba(70, 80, 55, 0.55);
+  border-radius: 4px;
+}
+
+.input-char-row--sheet .inputs-float__btn:hover {
+  background: rgba(30, 36, 22, 0.95);
+  border-color: rgba(212, 255, 0, 0.32);
 }
 
 .inputs-float--toolbar .inputs-float__btn--text {

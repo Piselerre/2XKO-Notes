@@ -4,6 +4,17 @@ All notable user-facing changes to **2XKO Notes**.
 
 ---
 
+## [0.5.1] — 2026-06-15
+
+### Added
+- **Character icons** in the 2XKO Inputs toolbar — insert fighter portraits inline in notes
+
+### Changed
+- Toolbar layout: character row sits under text controls without stretching the ribbon
+- Legal docs, SignPath policy pages, MIT license
+
+---
+
 ## [0.5.0] — 2026-06-12
 
 ### Added
