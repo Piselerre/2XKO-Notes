@@ -1,11 +1,11 @@
 {
-  "version": "0.5.1",
-  "format": "zip",
-  "notes": "2XKO Notes v0.5.1 (portable zip)",
-  "pub_date": "2026-06-16T10:45:41.644Z",
+  "version": "0.5.2",
+  "format": "exe",
+  "notes": "2XKO Notes v0.5.2 (portable exe)",
+  "pub_date": "2026-06-17T20:16:52.590Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/Piselerre/2XKO-Notes/releases/download/v0.5.1/2XKO.Notes_0.5.1_x64-portable.zip",
+      "url": "https://github.com/Piselerre/2XKO-Notes/releases/download/v0.5.2/2XKO.Notes_0.5.2_x64-portable.exe",
       "signature": null
     }
   }
