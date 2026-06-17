@@ -33,6 +33,10 @@ fn is_nsis_install_dir(dir: &Path) -> bool {
 }
 
 pub fn detect_distribution_kind() -> &'static str {
+    if option_env!("X2KO_PORTABLE_BUILD").is_some() {
+        return "portable_exe";
+    }
+
     let Ok(exe) = std::env::current_exe() else {
         return "unknown";
     };

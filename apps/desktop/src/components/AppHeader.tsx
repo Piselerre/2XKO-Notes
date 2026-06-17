@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 
 import { APP_VERSION } from '@/constants/version';
 import { SyncStatus } from './SyncStatus';
-import { UpdateStatus } from './UpdateStatus';
+import { HelpHubButton } from './HelpHubButton';
 import { useI18n } from '@/hooks/useI18n';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { openExternal } from '@/utils/openExternal';
+import { withMobilePreview } from '@/utils/mobilePreview';
 
 const LOGO = '/img/logo/LogoApp.png';
 
@@ -36,46 +38,59 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, headerContent, backTo, backLabel }: AppHeaderProps) {
   const { t } = useI18n();
+  const mobile = useIsMobile();
+  const hasCenter = Boolean(headerContent);
+  const headerClass = [
+    'app-header',
+    mobile ? 'app-header--mobile' : '',
+    hasCenter && !mobile ? 'app-header--with-center' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <header className="app-header">
+    <header className={headerClass}>
       <div className="app-header__left">
         {backTo && (
-          <Link to={backTo} className="app-header__back">
+          <Link to={withMobilePreview(backTo)} className="app-header__back">
             <span aria-hidden>◂</span>
-            <span>{backLabel}</span>
+            <span className="app-header__back-text">{backLabel}</span>
           </Link>
         )}
-        <Link to="/" className="app-header__brand" title={t('nav.home')}>
+        <Link to={withMobilePreview('/')} className="app-header__brand" title={t('nav.home')}>
           <img src={LOGO} alt="2XKO Notes" className="app-header__logo" decoding="async" />
         </Link>
-        <button
-          type="button"
-          className="app-header__credit"
-          onClick={() => openExternal('https://twitter.com/PixelR_')}
-        >
-          <span className="app-header__credit-tag" aria-hidden>✦</span>
-          <span className="app-header__credit-text">
-            <span className="app-header__credit-label">{t('common.madeBy')}</span>
-            <span className="app-header__credit-handle">@PixelR_</span>
-          </span>
-        </button>
-        {headerContent ? (
-          <div className="app-header__custom">{headerContent}</div>
-        ) : (
-          title && <h1 className="app-header__page-title">{title}</h1>
+        {!mobile && (
+          <button
+            type="button"
+            className="app-header__credit"
+            onClick={() => openExternal('https://twitter.com/PixelR_')}
+          >
+            <span className="app-header__credit-tag" aria-hidden>✦</span>
+            <span className="app-header__credit-text">
+              <span className="app-header__credit-label">{t('common.madeBy')}</span>
+              <span className="app-header__credit-handle">@PixelR_</span>
+            </span>
+          </button>
         )}
+        {mobile && hasCenter && <div className="app-header__center">{headerContent}</div>}
+        {!hasCenter && title && <h1 className="app-header__page-title">{title}</h1>}
       </div>
+      {!mobile && hasCenter && <div className="app-header__center">{headerContent}</div>}
       <div className="app-header__right">
-        <UpdateStatus />
         <SyncStatus />
         <div className="app-header__settings-wrap">
-          <Link to="/settings" className="app-header__icon" title={t('nav.settings')}>
-            <SettingsIcon />
-          </Link>
-          <span className="app-header__version" aria-label={`Version ${APP_VERSION}`}>
-            v{APP_VERSION}
-          </span>
+          {!mobile && <HelpHubButton />}
+          {!mobile && (
+            <Link to="/settings" className="app-header__icon" title={t('nav.settings')}>
+              <SettingsIcon />
+            </Link>
+          )}
+          {!mobile && (
+            <span className="app-header__version" aria-label={`Version ${APP_VERSION}`}>
+              v{APP_VERSION}
+            </span>
+          )}
         </div>
       </div>
     </header>

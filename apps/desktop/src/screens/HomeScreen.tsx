@@ -29,7 +29,11 @@ export function HomeScreen() {
 
       <BlockingModal open={frameModal} onClose={() => setFrameModal(false)} title={t('home.frameData')}>
         <p className="text-sm text-text-muted">{t('home.frameModalBody')}</p>
-        <button type="button" onClick={() => { openExternal(WIKI_URL); setFrameModal(false); }} className="xko-btn xko-btn--outline mt-4 w-full">
+        <button
+          type="button"
+          onClick={() => void openExternal(WIKI_URL).then(() => setFrameModal(false))}
+          className="xko-btn xko-btn--outline mt-4 w-full"
+        >
           {t('home.frameModalOpen')}
         </button>
       </BlockingModal>

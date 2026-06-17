@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Android/iOS capabilities (no desktop updater)",
+  "platforms": ["android", "iOS"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "opener:default",
+    "sql:default",
+    "process:allow-restart",
+    "deep-link:default"
+  ]
+}

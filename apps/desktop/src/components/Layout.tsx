@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { AppHeader } from './AppHeader';
 import { useI18n } from '@/hooks/useI18n';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,9 +20,10 @@ export function Layout({
   backLabel,
 }: LayoutProps) {
   const { t } = useI18n();
+  const mobile = useIsMobile();
 
   return (
-    <div className="hud-shell">
+    <div className={`hud-shell${mobile ? ' hud-shell--mobile' : ''}`}>
       <AppHeader
         title={title}
         headerContent={headerContent}

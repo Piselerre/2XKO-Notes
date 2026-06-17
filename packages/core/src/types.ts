@@ -28,6 +28,8 @@ export interface Matchup {
   id: string;
   characterId: string;
   opponentId: string;
+  label: string;
+  tabs: SectionTab[];
   sections: Record<string, NoteSection>;
   updatedAt: string;
   revision: number;
@@ -36,6 +38,8 @@ export interface Matchup {
 export interface ComboSheet {
   id: string;
   characterId: string;
+  label: string;
+  tabs: SectionTab[];
   sections: Record<string, NoteSection>;
   updatedAt: string;
 }
@@ -81,6 +85,8 @@ export interface TeamNote {
   id: string;
   char1Id: string;
   char2Id: string;
+  label: string;
+  tabs: SectionTab[];
   sections: Record<string, NoteSection>;
   updatedAt: string;
 }
@@ -89,6 +95,7 @@ export type Locale = 'en' | 'es';
 
 export type NotesArea = 'combos' | 'matchups' | 'teams';
 export type NotesViewMode = 'edit' | 'preview';
+export type NotesLayoutMode = 'tabs' | 'stacked';
 
 export interface SavedTeam {
   id: string;
@@ -134,6 +141,9 @@ export interface AppData {
   teamNotes: TeamNote[];
   savedTeams: SavedTeam[];
   activeSavedTeamId: string | null;
+  activeComboSheetIds: Record<string, string>;
+  activeMatchupIds: Record<string, string>;
+  activeTeamNoteIds: Record<string, string>;
   locale: Locale;
   syncMeta: SyncMeta;
   dismissedAnnouncements: string[];

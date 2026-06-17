@@ -3,7 +3,7 @@
   "channel": "stable-portable",
   "app": {
     "minVersion": "0.5.0",
-    "latestVersion": "0.5.1",
+    "latestVersion": "0.5.2",
     "binaryUpdateRequired": true
   },
   "characters": {
@@ -14,7 +14,7 @@
     "url": "https://raw.githubusercontent.com/Piselerre/2XKO-Notes/main/updates-channel/announcements.json"
   },
   "frontend": {
-    "version": "0.5.1",
+    "version": "0.5.2",
     "bundleUrl": null
   },
   "updater": {

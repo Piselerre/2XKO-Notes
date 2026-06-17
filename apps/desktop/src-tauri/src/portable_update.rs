@@ -24,27 +24,84 @@ pub fn download_file(url: String, dest: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn apply_portable_zip_update(zip_path: String) -> Result<(), String> {
-    let target = install_dir()?;
-    let zip = PathBuf::from(&zip_path);
-    if !zip.is_file() {
-        return Err("update zip missing".into());
-    }
-
-    let stamp = chrono::Local::now().format("%Y%m%d%H%M%S");
-    let extract_dir = std::env::temp_dir().join(format!("2xko-update-{stamp}"));
-    if extract_dir.exists() {
-        let _ = fs::remove_dir_all(&extract_dir);
-    }
-    fs::create_dir_all(&extract_dir).map_err(|e| e.to_string())?;
-
-    #[cfg(windows)]
-    use std::os::windows::process::CommandExt;
-    #[cfg(windows)]
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-
+pub fn apply_portable_exe_update(new_exe_path: String) -> Result<(), String> {
     #[cfg(windows)]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        let target_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let source = PathBuf::from(&new_exe_path);
+        if !source.is_file() {
+            return Err("update exe missing".into());
+        }
+
+        let stamp = chrono::Local::now().format("%Y%m%d%H%M%S");
+        let script = std::env::temp_dir().join(format!("2xko-exe-update-{stamp}.ps1"));
+        let script_body = format!(
+            r#"
+$ErrorActionPreference = 'Stop'
+$src = '{src}'
+$dst = '{dst}'
+Start-Sleep -Seconds 2
+Get-Process -Name '2XKO Notes' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+Unblock-File -LiteralPath $src -ErrorAction SilentlyContinue
+Copy-Item -LiteralPath $src -Destination $dst -Force
+Unblock-File -LiteralPath $dst -ErrorAction SilentlyContinue
+Start-Process -FilePath $dst
+Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
+"#,
+            src = source.to_string_lossy().replace('\'', "''"),
+            dst = target_exe.to_string_lossy().replace('\'', "''"),
+            script = script.to_string_lossy().replace('\'', "''"),
+        );
+        fs::write(&script, script_body).map_err(|e| e.to_string())?;
+
+        Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-WindowStyle",
+                "Hidden",
+                "-File",
+                script.to_str().unwrap_or_default(),
+            ])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = new_exe_path;
+        Err("portable exe updates are only supported on Windows".into())
+    }
+}
+
+#[tauri::command]
+pub fn apply_portable_zip_update(zip_path: String) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        let target = install_dir()?;
+        let zip = PathBuf::from(&zip_path);
+        if !zip.is_file() {
+            return Err("update zip missing".into());
+        }
+
+        let stamp = chrono::Local::now().format("%Y%m%d%H%M%S");
+        let extract_dir = std::env::temp_dir().join(format!("2xko-update-{stamp}"));
+        if extract_dir.exists() {
+            let _ = fs::remove_dir_all(&extract_dir);
+        }
+        fs::create_dir_all(&extract_dir).map_err(|e| e.to_string())?;
+
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
         let ps = format!(
             "Expand-Archive -LiteralPath '{}' -DestinationPath '{}' -Force",
             zip.to_string_lossy().replace('\'', "''"),
@@ -116,14 +173,15 @@ Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
             .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .map_err(|e| e.to_string())?;
+
+        return Ok(());
     }
 
     #[cfg(not(windows))]
     {
-        return Err("portable zip updates are only supported on Windows".into());
+        let _ = zip_path;
+        Err("portable zip updates are only supported on Windows".into())
     }
-
-    Ok(())
 }
 
 fn find_payload_dir(root: &Path) -> Option<PathBuf> {

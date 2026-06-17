@@ -1,3 +1,5 @@
+import { buildInputChipHtml } from '@/utils/glyphModifier';
+
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -10,8 +12,13 @@ export function parseInlineToHtml(text: string): string {
   let html = escapeHtml(text);
 
   html = html.replace(
-    /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" class="ve-glyph" draggable="false" contenteditable="false" />',
+    /!\[([^\]|]*)(?:\|(air|hold))?\]\(([^)]+)\)/gi,
+    (_match, alt: string, mod: string | undefined, src: string) => {
+      if (mod) {
+        return buildInputChipHtml(alt, src, mod.toLowerCase() as 'air' | 'hold');
+      }
+      return `<img src="${src}" alt="${alt}" class="ve-glyph" draggable="false" contenteditable="false" />`;
+    },
   );
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
@@ -49,6 +56,19 @@ export function parseLine(line: string): { tag: BlockTag; html: string; md: stri
   return { tag: 'p', html: parseInlineToHtml(line), md: line };
 }
 
+export function normalizeMarkdownSpacing(body: string): string {
+  let s = body.replace(/\u00a0/g, ' ');
+  s = s.replace(/(\!\[[^\]]*\]\([^)]+\))\s+(?=\!\[)/g, '$1');
+  s = s.replace(/(\!\[[^\]]*\]\([^)]+\))\s+(?=j\.)/g, '$1');
+  s = s.replace(/(\!\[[^\]]*\]\([^)]+\))\s+(?=dl\.)/g, '$1');
+  s = s.replace(/(\!\[[^\]]*\]\([^)]+\))(?=[^\s!\[])/g, (match, _g1, offset, full) => {
+    const rest = full.slice(offset + match.length);
+    if (rest.startsWith('j.') || rest.startsWith('dl.')) return match;
+    return `${match} `;
+  });
+  return s.replace(/  +/g, ' ').trimEnd();
+}
+
 function walkNodeToMd(node: Node, parts: string[]): void {
   if (node.nodeType === Node.TEXT_NODE) {
     parts.push(node.textContent ?? '');
@@ -77,12 +97,35 @@ function walkNodeToMd(node: Node, parts: string[]): void {
     parts.push(`[${a.textContent ?? ''}](${a.getAttribute('href') ?? ''})`);
     return;
   }
+  if (el.classList.contains('ve-input-chip')) {
+    const img = el.querySelector('img');
+    const mod = el.dataset.mod;
+    const alt = img?.getAttribute('alt') ?? '';
+    const src = img?.getAttribute('src') ?? '';
+    parts.push(mod ? `![${alt}|${mod}](${src})` : `![${alt}](${src})`);
+    return;
+  }
+  if (el.classList.contains('ve-input-mod')) {
+    const img = el.querySelector('img');
+    if (img) {
+      const tag = el.querySelector('.ve-input-mod__tag');
+      const tagText = (tag?.textContent ?? '').toLowerCase();
+      const mod = tagText.includes('air') ? 'air' : tagText.includes('hold') ? 'hold' : undefined;
+      const alt = img.getAttribute('alt') ?? '';
+      const src = img.getAttribute('src') ?? '';
+      parts.push(mod ? `![${alt}|${mod}](${src})` : `![${alt}](${src})`);
+      return;
+    }
+  }
   if (el.tagName === 'IMG') {
     const img = el as HTMLImageElement;
     parts.push(`![${img.alt}](${img.getAttribute('src') ?? ''})`);
     return;
   }
   if (el.tagName === 'BR') {
+    const parent = el.parentElement;
+    const isOnlyChild = parent?.childNodes.length === 1;
+    if (isOnlyChild) return;
     parts.push('\n');
     return;
   }
@@ -90,9 +133,12 @@ function walkNodeToMd(node: Node, parts: string[]): void {
 }
 
 export function serializeBlockBody(el: HTMLElement): string {
+  if (el.childNodes.length === 1 && el.firstChild?.nodeName === 'BR') {
+    return '';
+  }
   const parts: string[] = [];
   el.childNodes.forEach((child) => walkNodeToMd(child, parts));
-  return parts.join('').replace(/\u00a0/g, ' ');
+  return normalizeMarkdownSpacing(parts.join(''));
 }
 
 export function serializeBlock(el: HTMLElement): string {
@@ -116,7 +162,7 @@ export function serializeBlock(el: HTMLElement): string {
   }
 }
 
-const EMPTY_BLOCK = '<div class="ve-block" data-tag="p" contenteditable="true"><br></div>';
+const EMPTY_BLOCK = '<div class="ve-block" data-tag="p"><br></div>';
 
 export function markdownToHtml(md: string): string {
   const trimmed = md.trim();
@@ -125,7 +171,7 @@ export function markdownToHtml(md: string): string {
   return md.split('\n').map((line) => {
     const { tag, html } = parseLine(line);
     const safeTag = tag === 'empty' ? 'p' : tag;
-    return `<div class="ve-block" data-tag="${safeTag}" contenteditable="true">${html}</div>`;
+    return `<div class="ve-block" data-tag="${safeTag}">${html}</div>`;
   }).join('');
 }
 

@@ -65,22 +65,59 @@ export function createSectionsFromTabs(tabs: SectionTab[]): Record<string, NoteS
   return Object.fromEntries(tabs.map((t) => [t.id, createEmptySection(t.id)]));
 }
 
-export function createMatchup(characterId: string, opponentId: string, tabs: SectionTab[]): Matchup {
+export function cloneTabs(tabs: SectionTab[]): SectionTab[] {
+  return tabs.map((t) => ({ ...t }));
+}
+
+export function tabsFromSections(
+  sections: Record<string, NoteSection>,
+  fallback: SectionTab[]
+): SectionTab[] {
+  const keys = new Set(Object.keys(sections ?? {}));
+  if (keys.size === 0) return cloneTabs(fallback);
+
+  const ordered = fallback.filter((t) => keys.has(t.id));
+  for (const key of keys) {
+    if (!ordered.some((t) => t.id === key)) {
+      ordered.push({ id: key, label: key });
+    }
+  }
+  return ordered;
+}
+
+export function ensureSectionsForTabs(
+  tabs: SectionTab[],
+  sections: Record<string, NoteSection>
+): Record<string, NoteSection> {
+  const next = { ...sections };
+  for (const tab of tabs) {
+    next[tab.id] = next[tab.id] ?? createEmptySection(tab.id);
+  }
+  return next;
+}
+
+export function createMatchup(characterId: string, opponentId: string, tabs: SectionTab[], label = 'Main'): Matchup {
+  const cloned = cloneTabs(tabs);
   return {
     id: generateId(),
     characterId,
     opponentId,
-    sections: createSectionsFromTabs(tabs),
+    label,
+    tabs: cloned,
+    sections: createSectionsFromTabs(cloned),
     updatedAt: new Date().toISOString(),
     revision: 1,
   };
 }
 
-export function createComboSheet(characterId: string, tabs: SectionTab[]): ComboSheet {
+export function createComboSheet(characterId: string, tabs: SectionTab[], label = 'Main'): ComboSheet {
+  const cloned = cloneTabs(tabs);
   return {
     id: generateId(),
     characterId,
-    sections: createSectionsFromTabs(tabs),
+    label,
+    tabs: cloned,
+    sections: createSectionsFromTabs(cloned),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -93,17 +130,40 @@ export function savedTeamKey(char1Id: string, char2Id: string): string {
   return [char1Id, char2Id].sort().join(':');
 }
 
-export function createTeamNote(char1Id: string, char2Id: string, tabs: SectionTab[]): TeamNote {
+export function createTeamNote(char1Id: string, char2Id: string, tabs: SectionTab[], label = 'Main'): TeamNote {
+  const cloned = cloneTabs(tabs);
   return {
     id: generateId(),
     char1Id,
     char2Id,
-    sections: createSectionsFromTabs(tabs),
+    label,
+    tabs: cloned,
+    sections: createSectionsFromTabs(cloned),
     updatedAt: new Date().toISOString(),
   };
 }
 
-export function migrateTeamNote(note: TeamNote): TeamNote {
+export function migrateComboSheet(sheet: ComboSheet, globalTabs = DEFAULT_COMBO_TABS): ComboSheet {
+  const tabs = sheet.tabs?.length ? sheet.tabs : tabsFromSections(sheet.sections, globalTabs);
+  return {
+    ...sheet,
+    label: sheet.label ?? 'Main',
+    tabs,
+    sections: ensureSectionsForTabs(tabs, sheet.sections ?? {}),
+  };
+}
+
+export function migrateMatchup(matchup: Matchup, globalTabs = DEFAULT_MATCHUP_TABS): Matchup {
+  const tabs = matchup.tabs?.length ? matchup.tabs : tabsFromSections(matchup.sections, globalTabs);
+  return {
+    ...matchup,
+    label: matchup.label ?? 'Main',
+    tabs,
+    sections: ensureSectionsForTabs(tabs, matchup.sections ?? {}),
+  };
+}
+
+export function migrateTeamNote(note: TeamNote, globalTabs = DEFAULT_TEAM_TABS): TeamNote {
   const sections: Record<string, NoteSection> = {};
   for (const [id, sec] of Object.entries(note.sections ?? {})) {
     if (sec && 'checklist' in sec) {
@@ -118,7 +178,13 @@ export function migrateTeamNote(note: TeamNote): TeamNote {
       };
     }
   }
-  return { ...note, sections };
+  const tabs = note.tabs?.length ? note.tabs : tabsFromSections(sections, globalTabs);
+  return {
+    ...note,
+    label: note.label ?? 'Main',
+    tabs,
+    sections: ensureSectionsForTabs(tabs, sections),
+  };
 }
 
 export function createDefaultSyncMeta(): SyncMeta {
@@ -148,6 +214,9 @@ export function createDefaultAppData(): AppData {
     teamNotes: [],
     savedTeams: [],
     activeSavedTeamId: null,
+    activeComboSheetIds: {},
+    activeMatchupIds: {},
+    activeTeamNoteIds: {},
     locale: 'en',
     syncMeta: createDefaultSyncMeta(),
     dismissedAnnouncements: [],

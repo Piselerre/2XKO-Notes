@@ -20,7 +20,7 @@ const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
 const UPLOAD_API: &str = "https://www.googleapis.com/upload/drive/v3/files";
 const FOLDER_NAME: &str = "2XKO Notes";
 const SYNC_FILE: &str = "2xko-notes.sync.json";
-const TOKENS_FILE: &str = "google_oauth_tokens.json";
+use crate::storage_paths::{ensure_storage_migrated, notes_data_dir, tokens_file_path};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GoogleDriveStatus {
@@ -89,12 +89,9 @@ fn unix_now() -> i64 {
         .unwrap_or(0)
 }
 
-fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path().app_data_dir().map_err(|e| e.to_string())
-}
-
 fn tokens_path(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_dir(app)?.join(TOKENS_FILE))
+    ensure_storage_migrated(app)?;
+    tokens_file_path(app)
 }
 
 fn strip_bom(raw: &str) -> &str {
@@ -128,7 +125,7 @@ fn load_credentials(app: &AppHandle) -> Result<OAuthCredentials, String> {
     if let Ok(dir) = app.path().resource_dir() {
         candidates.push(dir.join("oauth_credentials.json"));
     }
-    if let Ok(dir) = app_data_dir(app) {
+    if let Ok(dir) = notes_data_dir(app) {
         candidates.push(dir.join("oauth_credentials.json"));
     }
     if let Ok(exe) = std::env::current_exe() {
@@ -164,8 +161,7 @@ fn load_tokens(app: &AppHandle) -> Result<Option<TokenData>, String> {
 }
 
 fn save_tokens(app: &AppHandle, tokens: &TokenData) -> Result<(), String> {
-    let dir = app_data_dir(app)?;
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    ensure_storage_migrated(app)?;
     let json = serde_json::to_string_pretty(tokens).map_err(|e| e.to_string())?;
     fs::write(tokens_path(app)?, json).map_err(|e| e.to_string())
 }
@@ -275,17 +271,7 @@ fn read_oauth_code(stream: &mut TcpStream) -> Result<Option<String>, String> {
     let first_line = req.lines().next().unwrap_or("");
     let path = first_line.split_whitespace().nth(1).unwrap_or("");
 
-    let mut code: Option<String> = None;
-    if let Some(query) = path.split('?').nth(1) {
-        for pair in query.split('&') {
-            let mut parts = pair.splitn(2, '=');
-            if parts.next() == Some("code") {
-                code = parts
-                    .next()
-                    .map(|c| urlencoding::decode(c).unwrap_or_default().into_owned());
-            }
-        }
-    }
+    let code = parse_oauth_code_from_url(&format!("http://127.0.0.1{path}"));
 
     let body = if code.is_some() {
         "<html><body><h2>2XKO Notes connected.</h2><p>You can close this tab.</p></body></html>"
@@ -469,7 +455,67 @@ pub fn drive_status(app: &AppHandle) -> Result<GoogleDriveStatus, String> {
     })
 }
 
-pub fn drive_connect(app: &AppHandle) -> Result<String, String> {
+fn parse_oauth_code_from_url(url: &str) -> Option<String> {
+    let query = url.split('?').nth(1).or_else(|| url.split('#').nth(1))?;
+    for pair in query.split('&') {
+        let mut parts = pair.splitn(2, '=');
+        if parts.next() == Some("code") {
+            return parts
+                .next()
+                .map(|c| urlencoding::decode(c).unwrap_or_default().into_owned());
+        }
+    }
+    None
+}
+
+fn exchange_auth_code(
+    client: &Client,
+    creds: &OAuthCredentials,
+    code: &str,
+    redirect_uri: &str,
+) -> Result<TokenResponse, String> {
+    let res = client
+        .post(TOKEN_URL)
+        .form(&[
+            ("client_id", creds.client_id.as_str()),
+            ("client_secret", creds.client_secret.as_str()),
+            ("code", code),
+            ("grant_type", "authorization_code"),
+            ("redirect_uri", redirect_uri),
+        ])
+        .send()
+        .map_err(|e| format!("Token exchange failed: {e}"))?;
+
+    if !res.status().is_success() {
+        let body = res.text().unwrap_or_default();
+        return Err(format!("Token exchange failed: {body}"));
+    }
+
+    res.json().map_err(|e| e.to_string())
+}
+
+fn finish_oauth_connect(
+    app: &AppHandle,
+    client: &Client,
+    creds: &OAuthCredentials,
+    code: &str,
+    redirect_uri: &str,
+) -> Result<String, String> {
+    let data = exchange_auth_code(client, creds, code, redirect_uri)?;
+    let email = fetch_user_email(client, &data.access_token)?;
+    let tokens = TokenData {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_in.map(|e| unix_now() + e),
+        email: email.clone(),
+    };
+    save_tokens(app, &tokens)?;
+    let _ = ensure_folder(client, &tokens);
+    Ok(email.unwrap_or_else(|| "Google Account".to_string()))
+}
+
+#[cfg(not(target_os = "android"))]
+fn drive_connect_localhost(app: &AppHandle) -> Result<String, String> {
     let creds = load_credentials(app)?;
     let client = http_client()?;
 
@@ -490,37 +536,74 @@ pub fn drive_connect(app: &AppHandle) -> Result<String, String> {
         .map_err(|e| format!("Could not open browser: {e}"))?;
 
     let code = wait_for_auth_code(port)?;
-    let res = client
-        .post(TOKEN_URL)
-        .form(&[
-            ("client_id", creds.client_id.as_str()),
-            ("client_secret", creds.client_secret.as_str()),
-            ("code", code.as_str()),
-            ("grant_type", "authorization_code"),
-            ("redirect_uri", redirect_uri.as_str()),
-        ])
-        .send()
-        .map_err(|e| format!("Token exchange failed: {e}"))?;
+    finish_oauth_connect(app, &client, &creds, &code, &redirect_uri)
+}
 
-    if !res.status().is_success() {
-        let body = res.text().unwrap_or_default();
-        return Err(format!("Token exchange failed: {body}"));
+#[cfg(target_os = "android")]
+fn drive_connect_android(app: &AppHandle) -> Result<String, String> {
+    use std::sync::mpsc;
+    use std::sync::{Arc, Mutex};
+
+    use tauri_plugin_deep_link::DeepLinkExt;
+
+    const REDIRECT_URI: &str = "com.x2ko.notes://oauth/callback";
+
+    let creds = load_credentials(app)?;
+    let client = http_client()?;
+
+    let (tx, rx) = mpsc::channel::<String>();
+    let sender = Arc::new(Mutex::new(Some(tx)));
+
+    app.deep_link().on_open_url(move |event| {
+        for url in event.urls() {
+            if let Some(code) = parse_oauth_code_from_url(url.as_str()) {
+                if let Ok(mut guard) = sender.lock() {
+                    if let Some(tx) = guard.take() {
+                        let _ = tx.send(code);
+                    }
+                }
+            }
+        }
+    });
+
+    if let Ok(Some(urls)) = app.deep_link().get_current() {
+        for url in urls {
+            if let Some(code) = parse_oauth_code_from_url(url.as_str()) {
+                return finish_oauth_connect(app, &client, &creds, &code, REDIRECT_URI);
+            }
+        }
     }
 
-    let data: TokenResponse = res.json().map_err(|e| e.to_string())?;
-    let email = fetch_user_email(&client, &data.access_token)?;
-    let tokens = TokenData {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        expires_at: data.expires_in.map(|e| unix_now() + e),
-        email: email.clone(),
-    };
-    save_tokens(app, &tokens)?;
+    let auth_url = format!(
+        "{AUTH_URL}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&prompt=consent",
+        urlencoding::encode(&creds.client_id),
+        urlencoding::encode(REDIRECT_URI),
+        urlencoding::encode(SCOPE),
+    );
 
-    // Create the Drive folder immediately so it appears in the user's My Drive.
-    let _ = ensure_folder(&client, &tokens);
+    app.opener()
+        .open_url(&auth_url, None::<&str>)
+        .map_err(|e| format!("Could not open browser: {e}"))?;
 
-    Ok(email.unwrap_or_else(|| "Google Account".to_string()))
+    let code = rx.recv_timeout(Duration::from_secs(180)).map_err(|_| {
+        "OAuth timed out. Finish sign-in in the browser, then return to 2XKO Notes.".to_string()
+    })?;
+
+    finish_oauth_connect(app, &client, &creds, &code, REDIRECT_URI)
+}
+
+#[cfg(target_os = "android")]
+fn drive_connect_impl(app: &AppHandle) -> Result<String, String> {
+    drive_connect_android(app)
+}
+
+#[cfg(not(target_os = "android"))]
+fn drive_connect_impl(app: &AppHandle) -> Result<String, String> {
+    drive_connect_localhost(app)
+}
+
+pub fn drive_connect(app: &AppHandle) -> Result<String, String> {
+    drive_connect_impl(app)
 }
 
 pub fn drive_disconnect(app: &AppHandle) -> Result<(), String> {

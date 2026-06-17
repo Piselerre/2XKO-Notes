@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { SectionTab } from '@2xko/core';
 
 import { useI18n } from '@/hooks/useI18n';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 import { BlockingModal } from './BlockingModal';
 
@@ -13,6 +14,7 @@ interface EditableTabBarProps {
   onAdd: (label: string) => void;
   onRemove: (id: string) => void;
   onRename: (id: string, label: string) => void;
+  onReorder?: (fromIndex: number, toIndex: number) => void;
 }
 
 export function EditableTabBar({
@@ -22,11 +24,17 @@ export function EditableTabBar({
   onAdd,
   onRemove,
   onRename,
+  onReorder,
 }: EditableTabBarProps) {
   const { t, locale } = useI18n();
+  const mobile = useIsMobile();
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
+  const [renaming, setRenaming] = useState<SectionTab | null>(null);
+  const [renameLabel, setRenameLabel] = useState('');
   const [pendingRemove, setPendingRemove] = useState<SectionTab | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   function handleAdd() {
     if (newLabel.trim()) {
@@ -34,6 +42,13 @@ export function EditableTabBar({
       setNewLabel('');
       setAdding(false);
     }
+  }
+
+  function handleRename() {
+    if (!renaming || !renameLabel.trim()) return;
+    onRename(renaming.id, renameLabel.trim());
+    setRenaming(null);
+    setRenameLabel('');
   }
 
   function confirmRemove() {
@@ -48,18 +63,45 @@ export function EditableTabBar({
 
   return (
     <div className="space-y-3">
-      <div className="combat-tabs">
-        {tabs.map((tab) => (
-          <div key={tab.id} className="combat-tab-wrap flex shrink-0 items-center">
+      <div className={`combat-tabs-wrap combat-tabs-wrap--scroll${mobile ? ' combat-tabs-wrap--scroll-hint' : ''}`}>
+        <div className="combat-tabs">
+        {tabs.map((tab, index) => (
+          <div
+            key={tab.id}
+            className={`combat-tab-wrap flex shrink-0 items-center${dropIndex === index ? ' combat-tab-wrap--drop' : ''}`}
+            draggable={!!onReorder && tabs.length > 1}
+            onDragStart={() => setDragIndex(index)}
+            onDragEnd={() => {
+              setDragIndex(null);
+              setDropIndex(null);
+            }}
+            onDragOver={(e) => {
+              if (!onReorder || dragIndex === null) return;
+              e.preventDefault();
+              setDropIndex(index);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (!onReorder || dragIndex === null || dragIndex === index) return;
+              onReorder(dragIndex, index);
+              setDragIndex(null);
+              setDropIndex(null);
+            }}
+          >
             <button
               type="button"
               onClick={() => onChange(tab.id)}
               onDoubleClick={() => {
-                const label = prompt(t('editor.rename'), tab.label);
-                if (label?.trim()) onRename(tab.id, label.trim());
+                setRenaming(tab);
+                setRenameLabel(tab.label);
               }}
               className={`combat-tab${active === tab.id ? ' is-active' : ''}`}
             >
+              {onReorder && tabs.length > 1 && (
+                <span className="combat-tab__drag" aria-hidden>
+                  ⋮⋮
+                </span>
+              )}
               {tab.label}
             </button>
             {tabs.length > 1 && (
@@ -77,6 +119,7 @@ export function EditableTabBar({
         <button type="button" onClick={() => setAdding(true)} className="combat-tab" title={t('editor.addSection')}>
           +
         </button>
+        </div>
       </div>
 
       {adding && (
@@ -99,8 +142,31 @@ export function EditableTabBar({
       )}
 
       <p className="font-display text-[10px] tracking-widest text-text-muted uppercase">
-        {t('editor.renameHint')}
+        {onReorder && tabs.length > 1
+          ? t('editor.reorderHint')
+          : mobile
+            ? t('editor.scrollTabsHint')
+            : t('editor.renameHint')}
       </p>
+
+      <BlockingModal open={!!renaming} onClose={() => setRenaming(null)} title={t('editor.rename')}>
+        <input
+          value={renameLabel}
+          onChange={(e) => setRenameLabel(e.target.value)}
+          className="xko-input w-full"
+          placeholder={t('editor.sectionName')}
+          onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+          autoFocus
+        />
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button type="button" onClick={() => setRenaming(null)} className="xko-btn xko-btn--ghost flex-1">
+            {t('common.cancel')}
+          </button>
+          <button type="button" onClick={handleRename} className="xko-btn xko-btn--lime flex-1">
+            {t('common.save')}
+          </button>
+        </div>
+      </BlockingModal>
 
       <BlockingModal open={!!pendingRemove} onClose={() => setPendingRemove(null)} title={t('editor.deleteSection')}>
         <p className="text-sm text-text-muted">

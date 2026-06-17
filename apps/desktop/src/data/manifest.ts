@@ -73,6 +73,41 @@ function characterBySlug(slug: string): Character | undefined {
   return roster.find((c) => c.slug === slug);
 }
 
+const SMALL_INPUT_FILES: Record<string, string> = {
+  ahri: 'Ahri.png',
+  akali: 'Akali.png',
+  blitzcrank: 'Blitzcrank.png',
+  braum: 'Braum.png',
+  caitlyn: 'Caitlyn.png',
+  darius: 'Darium.png',
+  ekko: 'Ekko.png',
+  illaoi: 'Illaoi.png',
+  jinx: 'Jinx.png',
+  senna: 'Senna.png',
+  teemo: 'Teemo.png',
+  thresh: 'Thresh.png',
+  vi: 'Vi.png',
+  warwick: 'Warwick.png',
+  yasuo: 'Yasuo.png',
+};
+
+export function getCharacterSmallInputSrc(slug: string): string {
+  const file = SMALL_INPUT_FILES[slug];
+  if (file) return `/img/character/small/${file}`;
+  const name = characterBySlug(slug)?.name;
+  return name ? `/img/character/small/${encodeURIComponent(name)}.png` : '';
+}
+
+export function getInputCharacterIcons(): { slug: string; name: string; src: string }[] {
+  return getCharacters()
+    .map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      src: getCharacterSmallInputSrc(c.slug),
+    }))
+    .filter((c) => c.src);
+}
+
 export function getCharacterRecut(slug: string): string {
   const name = characterBySlug(slug)?.name;
   return name ? `/img/character/recut/${name}.png` : '';

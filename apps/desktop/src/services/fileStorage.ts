@@ -3,7 +3,7 @@ import { useAppStore } from '@2xko/core';
 import type { AppData, SyncMeta } from '@2xko/core';
 
 import { LOCAL_SAVE_DEBOUNCE_MS } from '@/constants/autosave';
-import { isDesktopApp } from '@/utils/isDesktopApp';
+import { supportsLocalFileStorage } from '@/utils/platform';
 
 const SYNC_FILENAME = '2xko-notes.sync.json';
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -20,7 +20,7 @@ export function buildSyncPayload(): string {
 
 export async function getDataFilePath(): Promise<string> {
   if (cachedPath) return cachedPath;
-  if (isDesktopApp()) {
+  if (supportsLocalFileStorage()) {
     try {
       cachedPath = await tauriInvoke<string>('get_data_file_path');
       return cachedPath;
@@ -28,13 +28,13 @@ export async function getDataFilePath(): Promise<string> {
       /* fallthrough */
     }
   }
-  return `(navegador) localStorage → clave "2xko-notes-storage" — usa la app .exe para archivo real`;
+  return `(navegador) localStorage → clave "2xko-notes-storage" — usa la app instalada para archivo real`;
 }
 
 export async function saveToDataFile(): Promise<string | null> {
   const json = buildSyncPayload();
 
-  if (isDesktopApp()) {
+  if (supportsLocalFileStorage()) {
     try {
       const path = await tauriInvoke<string>('save_data_file', { content: json });
       cachedPath = path;
@@ -51,7 +51,7 @@ export function scheduleFileSave(): void {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     void saveToDataFile();
-    if (isDesktopApp()) {
+    if (supportsLocalFileStorage()) {
       void import('./googleDrive').then((m) => m.scheduleDriveSync());
     }
   }, LOCAL_SAVE_DEBOUNCE_MS);
@@ -66,7 +66,22 @@ export function parseSyncPayload(raw: string): AppData | null {
   }
 }
 
+function hasPersistedNotes(data: AppData): boolean {
+  return (
+    (data.syncMeta?.revision ?? 0) > 0 ||
+    data.savedTeams.length > 0 ||
+    data.matchups.length > 0 ||
+    data.comboSheets.length > 0 ||
+    data.teamNotes.length > 0 ||
+    data.players.length > 0
+  );
+}
+
 function pickNewer(local: AppData, fileData: AppData): 'local' | 'file' {
+  if (!hasPersistedNotes(local) && hasPersistedNotes(fileData)) {
+    return 'file';
+  }
+
   const fileRev = fileData.syncMeta?.revision ?? 0;
   const localRev = local.syncMeta?.revision ?? 0;
   const fileTime = Date.parse(fileData.syncMeta?.lastModified ?? '0');
@@ -92,9 +107,9 @@ export function mergeAppData(remote: AppData, preserveSyncMeta?: Partial<SyncMet
   }
 }
 
-/** Carga el .json al arrancar (Tauri). Usa la copia con revision más alta. */
+/** Carga el .json al arrancar (Tauri desktop + Android). Usa la copia con revision más alta. */
 export async function loadFromDataFile(): Promise<void> {
-  if (!isDesktopApp()) return;
+  if (!supportsLocalFileStorage()) return;
 
   try {
     const content = await tauriInvoke<string>('load_data_file');

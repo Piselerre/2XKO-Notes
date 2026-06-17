@@ -11,6 +11,7 @@ import { MatchupsScreen } from '@/screens/MatchupsScreen';
 import { CombosScreen } from '@/screens/CombosScreen';
 import { PlayersScreen } from '@/screens/PlayersScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
+import { BackupManagerScreen } from '@/screens/BackupManagerScreen';
 import { TeamNotesScreen } from '@/screens/TeamNotesScreen';
 import { KofiFloatStack } from '@/components/KofiFloatStack';
 import { DevDebugOverlay } from '@/components/DevDebugOverlay';
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/players" element={<PlayersScreen />} />
         <Route path="/team-notes/*" element={<TeamNotesScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
+        <Route path="/settings/backups" element={<BackupManagerScreen />} />
       </Routes>
     </UpdateManagerProvider>
   );

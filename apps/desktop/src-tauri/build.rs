@@ -14,5 +14,8 @@ fn main() {
             "cargo:warning=oauth_credentials.json missing — Google Drive will not work in dev until you add it."
         );
     }
+    if std::env::var("X2KO_PORTABLE_BUILD").ok().as_deref() == Some("1") {
+        println!("cargo:rustc-env=X2KO_PORTABLE_BUILD=1");
+    }
     tauri_build::build()
 }

@@ -1,3 +1,4 @@
+import { buildInputChipHtml } from '@/utils/glyphModifier';
 import { parseInlineToHtml, serializeBlockBody } from './markdownParse';
 
 export function getActiveBlock(root: HTMLElement | null): HTMLElement | null {
@@ -22,6 +23,13 @@ function nodeToMdLength(node: Node): number {
   if (el.tagName === 'STRONG') return `**${el.textContent ?? ''}**`.length;
   if (el.tagName === 'EM') return `*${el.textContent ?? ''}*`.length;
   if (el.tagName === 'CODE') return `\`${el.textContent ?? ''}\``.length;
+  if (el.classList.contains('ve-input-chip')) {
+    const img = el.querySelector('img');
+    const mod = el.dataset.mod;
+    const alt = img?.getAttribute('alt') ?? '';
+    const src = img?.getAttribute('src') ?? '';
+    return (mod ? `![${alt}|${mod}](${src})` : `![${alt}](${src})`).length;
+  }
   if (el.tagName === 'IMG') {
     const img = el as HTMLImageElement;
     return `![${img.alt}](${img.getAttribute('src') ?? ''})`.length;
@@ -45,6 +53,15 @@ export function getMarkdownOffset(block: HTMLElement, endContainer: Node, endOff
 export function setMarkdownOffset(block: HTMLElement, target: number): void {
   const sel = window.getSelection();
   if (!sel) return;
+
+  if (target <= 0) {
+    const range = document.createRange();
+    range.selectNodeContents(block);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return;
+  }
 
   let remaining = target;
 
@@ -81,7 +98,7 @@ export function setMarkdownOffset(block: HTMLElement, target: number): void {
       return false;
     }
 
-    if (['STRONG', 'EM', 'CODE', 'IMG'].includes(el.tagName)) {
+    if (['STRONG', 'EM', 'CODE', 'IMG'].includes(el.tagName) || el.classList.contains('ve-input-chip')) {
       const mdLen = nodeToMdLength(el);
       if (remaining <= mdLen) {
         const text = el.firstChild;
@@ -153,8 +170,16 @@ type InlinePattern = {
 
 const INLINE_PATTERNS: InlinePattern[] = [
   {
-    regex: /!\[([^\]]*)\]\(([^)]+)\)$/,
-    html: (m) => `<img src="${m[2]}" alt="${m[1]}" class="ve-glyph" draggable="false" contenteditable="false" />`,
+    regex: /!\[([^\]|]*)(?:\|(air|hold))?\]\(([^)]+)\)$/i,
+    html: (m) => {
+      const alt = m[1];
+      const mod = m[2]?.toLowerCase();
+      const src = m[3];
+      if (mod) {
+        return buildInputChipHtml(alt, src, mod as 'air' | 'hold');
+      }
+      return `<img src="${src}" alt="${alt}" class="ve-glyph" draggable="false" contenteditable="false" />`;
+    },
     mdLen: (m) => m[0].length,
   },
   {
@@ -196,7 +221,8 @@ export function tryInlineTransform(block: HTMLElement): boolean {
     const rendered = pattern.html(match);
     const prefixHtml = prefix ? parseInlineToHtml(prefix) : '';
     const afterHtml = after ? parseInlineToHtml(after) : '';
-    block.innerHTML = `${prefixHtml}${rendered}&nbsp;${afterHtml}` || '<br>';
+    const afterImage = /(?:<\/span>|<img[^>]*\/?>)\s*$/i.test(prefixHtml);
+    block.innerHTML = `${prefixHtml}${rendered}${afterImage ? '' : '&nbsp;'}${afterHtml}` || '<br>';
 
     const newOffset = prefix.length + pattern.mdLen(match) + 1;
     setMarkdownOffset(block, newOffset);
@@ -206,7 +232,8 @@ export function tryInlineTransform(block: HTMLElement): boolean {
 }
 
 export function isBlockEmpty(block: HTMLElement): boolean {
-  const body = serializeBlockBody(block).replace(/\n/g, '');
+  if (block.childNodes.length === 1 && block.firstChild?.nodeName === 'BR') return true;
+  const body = serializeBlockBody(block);
   return !body.trim();
 }
 
@@ -215,7 +242,9 @@ export function getCursorOffsetInBlock(block: HTMLElement): number | null {
   if (!sel?.rangeCount) return null;
   const range = sel.getRangeAt(0);
   if (!block.contains(range.commonAncestorContainer)) return null;
-  return getMarkdownOffset(block, range.endContainer, range.endOffset);
+  const offset = getMarkdownOffset(block, range.endContainer, range.endOffset);
+  if (isBlockEmpty(block) && offset > 0) return 0;
+  return offset;
 }
 
 export function placeCursorInBlock(block: HTMLElement, offset: number): void {
@@ -265,7 +294,6 @@ export function splitBlockAtCursor(block: HTMLElement): HTMLElement | null {
   const newBlock = document.createElement('div');
   newBlock.className = 've-block';
   newBlock.dataset.tag = 'p';
-  newBlock.contentEditable = 'true';
   newBlock.innerHTML = after ? parseInlineToHtml(after) : '<br>';
   block.after(newBlock);
 
@@ -338,4 +366,129 @@ export function ensureEditorContent(root: HTMLElement, emptyHtml: string): void 
   if (!root.querySelector('.ve-block')) {
     root.innerHTML = emptyHtml;
   }
+}
+
+function isAtomicInlineNode(node: Node | null): node is HTMLElement {
+  return isInlineImageNode(node);
+}
+
+export function isInlineImageNode(node: Node | null): node is HTMLElement {
+  if (!(node instanceof HTMLElement)) return false;
+  if (node.classList.contains('ve-input-chip')) return true;
+  return node.tagName === 'IMG' && node.classList.contains('ve-glyph');
+}
+
+function isSpacerText(text: string): boolean {
+  return text === '\u00a0' || text === ' ' || text === '';
+}
+
+/** Remove spaces between consecutive inline images; keep at most one before following text. */
+export function normalizeInlineSpacingInBlock(block: HTMLElement): void {
+  let node = block.firstChild;
+  while (node) {
+    const next = node.nextSibling;
+    if (
+      node.nodeType === Node.TEXT_NODE
+      && isSpacerText(node.textContent ?? '')
+      && isInlineImageNode(node.previousSibling)
+      && isInlineImageNode(next)
+    ) {
+      node.remove();
+      node = next;
+      continue;
+    }
+    node = next;
+  }
+}
+
+export function insertInlineImageAtSelection(
+  node: Node,
+  saved: Range | null | undefined,
+  root: HTMLElement,
+): void {
+  insertAtSelection(node, saved, root);
+  if (isInlineImageNode(node.previousSibling)) {
+    const spacer = node.previousSibling?.nextSibling;
+    if (spacer?.nodeType === Node.TEXT_NODE && isSpacerText(spacer.textContent ?? '')) {
+      spacer.remove();
+    }
+  }
+  const block = getActiveBlock(root);
+  if (block) normalizeInlineSpacingInBlock(block);
+}
+
+export function shouldSkipLeadingSpaceBeforeText(key: string): boolean {
+  return key === 'j' || key === 'd';
+}
+
+function previousMeaningfulSibling(node: Node | null): Node | null {
+  let current = node;
+  while (current) {
+    if (current.nodeType === Node.TEXT_NODE) {
+      const text = current.textContent ?? '';
+      if (text.length > 0 && text !== '\u00a0' && text.trim() !== '') return current;
+      current = current.previousSibling;
+      continue;
+    }
+    if (current.nodeType === Node.ELEMENT_NODE) {
+      if ((current as HTMLElement).tagName === 'BR') {
+        current = current.previousSibling;
+        continue;
+      }
+      return current;
+    }
+    current = current.previousSibling;
+  }
+  return null;
+}
+
+export function nodeBeforeCursor(block: HTMLElement): Node | null {
+  const sel = window.getSelection();
+  if (!sel?.rangeCount || !sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  if (!block.contains(range.startContainer)) return null;
+
+  const { startContainer, startOffset } = range;
+  if (startContainer.nodeType === Node.TEXT_NODE) {
+    if (startOffset > 0) return null;
+    return previousMeaningfulSibling(startContainer);
+  }
+  if (startContainer instanceof HTMLElement) {
+    if (startOffset > 0) {
+      return previousMeaningfulSibling(startContainer.childNodes[startOffset - 1] ?? null);
+    }
+    if (startContainer === block) return previousMeaningfulSibling(block.lastChild);
+    return previousMeaningfulSibling(startContainer);
+  }
+  return null;
+}
+
+export function deleteAtomicInlineBeforeCursor(block: HTMLElement): boolean {
+  const sel = window.getSelection();
+  if (!sel?.rangeCount || !sel.isCollapsed) return false;
+  const range = sel.getRangeAt(0);
+  if (!block.contains(range.startContainer)) return false;
+
+  const { startContainer, startOffset } = range;
+  if (startContainer.nodeType === Node.TEXT_NODE && startOffset > 0) {
+    const text = startContainer.textContent ?? '';
+    if (text === '\u00a0' && startOffset >= 1) {
+      const prev = startContainer.previousSibling;
+      if (isAtomicInlineNode(prev)) {
+        prev.remove();
+        (startContainer as ChildNode).remove();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const target = nodeBeforeCursor(block);
+  if (!isAtomicInlineNode(target)) return false;
+  target.remove();
+  const next = target.nextSibling;
+  if (next?.nodeType === Node.TEXT_NODE && next.textContent === '\u00a0') {
+    next.remove();
+  }
+  return true;
 }

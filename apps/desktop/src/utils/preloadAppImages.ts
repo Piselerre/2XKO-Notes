@@ -21,6 +21,7 @@ const BUTTON_GLYPHS = [
   'Glyph-S2.svg',
   'Glyph-T.svg',
   'Glyph-plus.svg',
+  'Glyph-chain.svg',
   'Glyph-Dash.svg',
 ];
 

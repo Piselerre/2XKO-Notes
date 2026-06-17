@@ -17,9 +17,14 @@ export function UpdateStatus() {
 
   if (phase === 'downloading') {
     return (
-      <div className="update-pill update-pill--busy" role="status">
+      <div className="update-pill update-pill--busy update-pill--with-bar" role="status">
         <span className="update-pill__dot" aria-hidden />
-        {t('updates.downloading').replace('{percent}', String(progress))}
+        <span className="update-pill__text">
+          {t('updates.downloading').replace('{percent}', String(progress))}
+        </span>
+        <span className="update-pill__bar" aria-hidden>
+          <span className="update-pill__bar-fill" style={{ width: `${Math.max(progress, 4)}%` }} />
+        </span>
       </div>
     );
   }

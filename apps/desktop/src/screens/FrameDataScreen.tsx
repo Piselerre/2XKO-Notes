@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { BlockingModal } from '@/components/BlockingModal';
 import { useI18n } from '@/hooks/useI18n';
+import { openExternal } from '@/utils/openExternal';
 
 const WIKI_URL = 'https://wiki.play2xko.com/en-us/';
 
@@ -11,7 +12,7 @@ export function FrameDataScreen() {
   const [showModal, setShowModal] = useState(true);
 
   const openWiki = () => {
-    window.open(WIKI_URL, '_blank', 'noopener,noreferrer');
+    void openExternal(WIKI_URL);
     setShowModal(false);
   };
 

@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 
 import type { Character } from '@2xko/core';
 
+import { withMobilePreview } from '@/utils/mobilePreview';
+
 import { FighterPortrait } from './FighterPortrait';
 
 interface CharacterCardProps {
@@ -60,17 +62,21 @@ export function CharacterCard({
     );
   }
 
+  const linkTo = to ? withMobilePreview(to) : '#';
+
   return (
     <div className={className}>
       <div className="fighter-slot__frame">
-        <Link to={to ?? '#'} className="fighter-slot__hit" aria-label={character.name}>
+        <Link to={linkTo} className="fighter-slot__hit" aria-label={character.name}>
           {portrait}
         </Link>
       </div>
       {!label && !hideName && (
-        <Link to={to ?? '#'} className="fighter-slot__name">
-          {character.name}
-        </Link>
+        <div className="fighter-slot__name-wrap">
+          <Link to={linkTo} className="fighter-slot__name">
+            {character.name}
+          </Link>
+        </div>
       )}
     </div>
   );

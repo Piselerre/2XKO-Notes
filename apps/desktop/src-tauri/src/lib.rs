@@ -10,11 +10,21 @@ use google_drive::{
     drive_connect, drive_disconnect, drive_pull, drive_push, drive_status, GoogleDrivePullResult,
     GoogleDrivePushResult, GoogleDriveStatus,
 };
-use portable_update::{apply_portable_zip_update, download_file};
+use portable_update::{apply_portable_exe_update, apply_portable_zip_update, download_file};
 use storage_paths::{
-    create_dated_backup, data_file_path, ensure_storage_migrated, find_latest_backup,
-    is_valid_sync_payload, load_backup_content, payload_revision, write_atomic,
+    archive_current_data, create_dated_backup, data_file_path, ensure_storage_migrated,
+    find_latest_backup, is_valid_sync_payload,     list_all_backups, load_backup_content,
+    payload_revision, restore_backup_file, delete_backup_file, write_atomic, BackupEntry,
 };
+
+use tauri_plugin_opener::OpenerExt;
+
+#[tauri::command]
+fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|e| format!("Could not open URL: {e}"))
+}
 
 #[tauri::command]
 fn save_data_file(app: tauri::AppHandle, content: String) -> Result<String, String> {
@@ -73,6 +83,48 @@ fn load_data_file(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
+fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupEntry>, String> {
+    ensure_storage_migrated(&app)?;
+    list_all_backups(&app)
+}
+
+#[tauri::command]
+fn read_backup(app: tauri::AppHandle, path: String) -> Result<String, String> {
+    ensure_storage_migrated(&app)?;
+    let root = storage_paths::backups_root(&app)?;
+    let backup_path = std::path::PathBuf::from(&path);
+    let canonical_root = std::fs::canonicalize(&root).unwrap_or(root);
+    let canonical_path = std::fs::canonicalize(&backup_path).map_err(|e| e.to_string())?;
+    if !canonical_path.starts_with(&canonical_root) {
+        return Err("Backup path is outside the backups folder.".into());
+    }
+    load_backup_content(&canonical_path)
+}
+
+#[derive(serde::Serialize)]
+struct RestoreBackupResult {
+    data_path: String,
+    archived_path: Option<String>,
+}
+
+#[tauri::command]
+fn restore_backup(app: tauri::AppHandle, path: String) -> Result<RestoreBackupResult, String> {
+    ensure_storage_migrated(&app)?;
+    let archived_path = archive_current_data(&app)?;
+    let data_path = restore_backup_file(&app, &path)?;
+    Ok(RestoreBackupResult {
+        data_path,
+        archived_path,
+    })
+}
+
+#[tauri::command]
+fn delete_backup(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    ensure_storage_migrated(&app)?;
+    delete_backup_file(&app, &path)
+}
+
+#[tauri::command]
 fn google_drive_status(app: tauri::AppHandle) -> Result<GoogleDriveStatus, String> {
     drive_status(&app)
 }
@@ -123,11 +175,17 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            open_external_url,
             save_data_file,
             get_data_file_path,
             load_data_file,
+            list_backups,
+            read_backup,
+            restore_backup,
+            delete_backup,
             get_distribution_kind,
             download_file,
+            apply_portable_exe_update,
             apply_portable_zip_update,
             google_drive_status,
             google_drive_connect,

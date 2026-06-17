@@ -4,9 +4,16 @@ import { glyphUrl } from '@/utils/preloadAppImages';
 
 import { CachedImage } from './CachedImage';
 
-type GlyphBtn = { file: string; label: string; text?: string; titleKey?: 'jumpPrefix' | 'delayPrefix' };
+export type InputModifier = 'air' | 'hold' | null;
 
-/** Numpad layout: 7↖ 8↑ 9↗ / 4← 5Dash 6→ / 1↙ 2↓ 3↘ */
+type GlyphBtn = {
+  file: string;
+  label: string;
+  text?: string;
+  titleKey?: 'jumpPrefix' | 'delayPrefix';
+  modifiers?: boolean;
+};
+
 const DPAD_GRID: GlyphBtn[] = [
   { file: 'Glyph-up_back.svg', label: '↖' },
   { file: 'Glyph-up.svg', label: '↑' },
@@ -19,29 +26,33 @@ const DPAD_GRID: GlyphBtn[] = [
   { file: 'Glyph-down_forward.svg', label: '↘' },
 ];
 
-const ROW_BUTTONS: GlyphBtn[][] = [
-  [
-    { file: 'Glyph-L.svg', label: 'L' },
-    { file: 'Glyph-M.svg', label: 'M' },
-    { file: 'Glyph-H.svg', label: 'H' },
-    { file: 'Glyph-parry.svg', label: 'P' },
-    { file: '', label: 'j.', text: 'j.', titleKey: 'jumpPrefix' },
-    { file: '', label: 'dl.', text: 'dl.', titleKey: 'delayPrefix' },
-  ],
-  [
-    { file: 'Glyph-S1.svg', label: 'S1' },
-    { file: 'Glyph-S2.svg', label: 'S2' },
-    { file: 'Glyph-T.svg', label: 'T' },
-    { file: 'Glyph-plus.svg', label: '+' },
-  ],
+const ROW_ATTACKS: GlyphBtn[] = [
+  { file: 'Glyph-L.svg', label: 'L', modifiers: true },
+  { file: 'Glyph-M.svg', label: 'M', modifiers: true },
+  { file: 'Glyph-H.svg', label: 'H', modifiers: true },
+  { file: '', label: 'j.', text: 'j.', titleKey: 'jumpPrefix' },
+  { file: '', label: 'dl.', text: 'dl.', titleKey: 'delayPrefix' },
+];
+
+const ROW_SPECIALS: GlyphBtn[] = [
+  { file: 'Glyph-S1.svg', label: 'S1', modifiers: true },
+  { file: 'Glyph-S2.svg', label: 'S2', modifiers: true },
+  { file: 'Glyph-T.svg', label: 'T', modifiers: true },
+  { file: 'Glyph-plus.svg', label: '+' },
+  { file: 'Glyph-chain.svg', label: '>' },
 ];
 
 interface InputsFloatingPanelProps {
   jPrefix: boolean;
   dlPrefix: boolean;
+  airMode: boolean;
+  holdMode: boolean;
   onToggleJPrefix: () => void;
   onToggleDlPrefix: () => void;
-  onInsertGlyph: (file: string, label: string) => void;
+  onToggleAirMode: () => void;
+  onToggleHoldMode: () => void;
+  onInsertGlyph: (file: string, label: string, modifier?: InputModifier) => void;
+  variant?: 'toolbar' | 'sheet' | 'mobile';
 }
 
 function preventToolbarFocus(e: React.MouseEvent) {
@@ -51,11 +62,17 @@ function preventToolbarFocus(e: React.MouseEvent) {
 export function InputsFloatingPanel({
   jPrefix,
   dlPrefix,
+  airMode,
+  holdMode,
   onToggleJPrefix,
   onToggleDlPrefix,
+  onToggleAirMode,
+  onToggleHoldMode,
   onInsertGlyph,
+  variant = 'toolbar',
 }: InputsFloatingPanelProps) {
   const { t } = useI18n();
+  const activeModifier: InputModifier = airMode ? 'air' : holdMode ? 'hold' : null;
 
   function renderTextBtn(btn: GlyphBtn, key: string, active: boolean, onClick: () => void) {
     return (
@@ -81,34 +98,79 @@ export function InputsFloatingPanel({
       return renderTextBtn(btn, key, dlPrefix, onToggleDlPrefix);
     }
 
+    const modifier = btn.modifiers ? activeModifier : null;
+
     return (
       <button
         key={key}
         type="button"
         onMouseDown={preventToolbarFocus}
-        onClick={() => onInsertGlyph(btn.file, btn.label)}
-        className="inputs-float__btn inputs-float__btn--glyph"
+        onClick={() => onInsertGlyph(btn.file, btn.label, modifier ?? undefined)}
+        className={`inputs-float__btn inputs-float__btn--glyph${btn.file === 'Glyph-Dash.svg' ? ' inputs-float__btn--dash' : ''}`}
         title={btn.label}
         tabIndex={-1}
       >
-        <CachedImage src={glyphUrl(btn.file)} alt={btn.label} className="inputs-float__glyph" eager />
+        {btn.file ? (
+          <CachedImage src={glyphUrl(btn.file)} alt={btn.label} className="inputs-float__glyph" eager />
+        ) : (
+          <span>{btn.label}</span>
+        )}
       </button>
     );
   }
 
+  function renderModifierBtns() {
+    return (
+      <div className="inputs-float__mods-inline">
+        <button
+          type="button"
+          className={`inputs-float__mod-btn${airMode ? ' is-on' : ''}`}
+          onMouseDown={preventToolbarFocus}
+          onClick={onToggleAirMode}
+          tabIndex={-1}
+        >
+          AIR
+        </button>
+        <button
+          type="button"
+          className={`inputs-float__mod-btn${holdMode ? ' is-on' : ''}`}
+          onMouseDown={preventToolbarFocus}
+          onClick={onToggleHoldMode}
+          tabIndex={-1}
+        >
+          HOLD
+        </button>
+      </div>
+    );
+  }
+
+  function renderAttackRow() {
+    const nodes: React.ReactNode[] = [];
+    for (const btn of ROW_ATTACKS) {
+      nodes.push(renderBtn(btn, `atk-${btn.file || btn.text}`));
+      if (btn.label === 'H') {
+        nodes.push(renderModifierBtns());
+      }
+    }
+    return nodes;
+  }
+
   return (
-    <div className="inputs-float" onMouseDown={preventToolbarFocus} aria-label={t('markdown.inputs')}>
-      <span className="inputs-float__title">{t('markdown.inputs')}</span>
-      <div className="inputs-float__rows">
+    <div
+      className={`inputs-float inputs-float--${variant}`}
+      onMouseDown={preventToolbarFocus}
+      aria-label={t('markdown.inputs')}
+    >
+      <div className="inputs-float__layout">
         <div className="inputs-float__dpad">
           {DPAD_GRID.map((btn, index) => renderBtn(btn, `dpad-${index}`))}
         </div>
-        <div className="inputs-float__divider" aria-hidden />
-        {ROW_BUTTONS.map((row, rowIndex) => (
-          <div key={`btn-${rowIndex}`} className="inputs-float__row inputs-float__row--center">
-            {row.map((btn) => renderBtn(btn, `btn-${rowIndex}-${btn.file || btn.text}`))}
+        <div className="inputs-float__actions-col">
+          <div className="inputs-float__row">{renderAttackRow()}</div>
+          <div className="inputs-float__row">
+            {ROW_SPECIALS.map((btn) => renderBtn(btn, `sp-${btn.file}`))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

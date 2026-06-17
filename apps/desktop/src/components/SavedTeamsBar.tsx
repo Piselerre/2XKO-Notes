@@ -13,6 +13,7 @@ interface SavedTeamsBarProps {
   activeTeamId: string | null;
   onCreate: () => void;
   onOpenTeam: (team: SavedTeam) => void;
+  onEdit?: (team: SavedTeam) => void;
   onRemove: (id: string) => void;
 }
 
@@ -21,6 +22,7 @@ export function SavedTeamsBar({
   activeTeamId,
   onCreate,
   onOpenTeam,
+  onEdit,
   onRemove,
 }: SavedTeamsBarProps) {
   const { t, locale } = useI18n();
@@ -66,6 +68,17 @@ export function SavedTeamsBar({
                     </p>
                   </div>
                 </button>
+                {onEdit && (
+                  <button
+                    type="button"
+                    className="saved-team-card__edit"
+                    onClick={() => onEdit(team)}
+                    title={t('teams.edit')}
+                    aria-label={t('teams.edit')}
+                  >
+                    ✎
+                  </button>
+                )}
                 <button
                   type="button"
                   className="saved-team-card__remove"

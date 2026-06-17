@@ -12,6 +12,8 @@ import type {
   ChecklistItem,
   Locale,
   NotesViewMode,
+  NotesLayoutMode,
+  SectionTab,
 } from './types';
 import {
   createDefaultAppData,
@@ -22,8 +24,11 @@ import {
   createSavedTeam,
   savedTeamKey,
   migrateTeamNote,
+  migrateComboSheet,
+  migrateMatchup,
   createEmptySection,
   generateId,
+  cloneTabs,
   MATCHUP_PLAYER_ID,
   DEFAULT_MATCHUP_TABS,
   DEFAULT_COMBO_TABS,
@@ -51,12 +56,14 @@ interface AppStore extends AppData {
     data: Partial<{ markdown: string; checklist: ChecklistItem[] }>
   ) => void;
 
-  addMatchupTab: (label: string) => void;
-  removeMatchupTab: (id: string) => void;
-  renameMatchupTab: (id: string, label: string) => void;
-  addComboTab: (label: string) => void;
-  removeComboTab: (id: string) => void;
-  renameComboTab: (id: string, label: string) => void;
+  addMatchupTab: (matchupId: string, label: string) => void;
+  removeMatchupTab: (matchupId: string, id: string) => void;
+  renameMatchupTab: (matchupId: string, id: string, label: string) => void;
+  reorderMatchupTabs: (matchupId: string, fromIndex: number, toIndex: number) => void;
+  addComboTab: (sheetId: string, label: string) => void;
+  removeComboTab: (sheetId: string, id: string) => void;
+  renameComboTab: (sheetId: string, id: string, label: string) => void;
+  reorderComboTabs: (sheetId: string, fromIndex: number, toIndex: number) => void;
 
   addPlayer: () => Player;
   updatePlayer: (id: string, data: Partial<Player>) => void;
@@ -69,16 +76,38 @@ interface AppStore extends AppData {
     data: Partial<{ markdown: string; checklist: ChecklistItem[] }>
   ) => void;
   deleteTeamNote: (id: string) => void;
-  addTeamTab: (label: string) => void;
-  removeTeamTab: (id: string) => void;
-  renameTeamTab: (id: string, label: string) => void;
+  addTeamTab: (teamNoteId: string, label: string) => void;
+  removeTeamTab: (teamNoteId: string, id: string) => void;
+  renameTeamTab: (teamNoteId: string, id: string, label: string) => void;
+  reorderTeamTabs: (teamNoteId: string, fromIndex: number, toIndex: number) => void;
 
   addSavedTeam: (char1Id: string, char2Id: string) => SavedTeam | null;
+  updateSavedTeam: (teamId: string, char1Id: string, char2Id: string) => SavedTeam | null;
   removeSavedTeam: (id: string) => void;
   setActiveSavedTeam: (id: string | null) => void;
+
+  addComboInstance: (characterId: string, label: string) => ComboSheet;
+  renameComboInstance: (sheetId: string, label: string) => void;
+  removeComboInstance: (sheetId: string) => void;
+  setActiveComboSheet: (characterId: string, sheetId: string) => void;
+
+  addMatchupInstance: (opponentId: string, label: string) => Matchup;
+  renameMatchupInstance: (matchupId: string, label: string) => void;
+  removeMatchupInstance: (matchupId: string) => void;
+  setActiveMatchup: (opponentId: string, matchupId: string) => void;
+
+  addTeamNoteInstance: (char1Id: string, char2Id: string, label: string) => TeamNote;
+  renameTeamNoteInstance: (teamNoteId: string, label: string) => void;
+  removeTeamNoteInstance: (teamNoteId: string) => void;
+  setActiveTeamNote: (pairKey: string, teamNoteId: string) => void;
+
   setLocale: (locale: Locale) => void;
   notesViewMode: NotesViewMode;
+  notesLayoutMode: NotesLayoutMode;
+  uiScale: number;
   setNotesViewMode: (mode: NotesViewMode) => void;
+  setNotesLayoutMode: (mode: NotesLayoutMode) => void;
+  setUiScale: (scale: number) => void;
 
   setGoogleConnected: (connected: boolean, email?: string | null) => void;
   setDriveIds: (folderId: string | null, fileId: string | null) => void;
@@ -100,17 +129,34 @@ const debouncedSave = (() => {
   };
 })();
 
-function addSectionToAll<T extends { sections: Record<string, unknown> }>(
-  items: T[],
-  sectionId: string
-): T[] {
-  return items.map((item) => ({
-    ...item,
-    sections: {
-      ...item.sections,
-      [sectionId]: item.sections[sectionId] ?? createEmptySection(sectionId),
-    },
-  }));
+function reorderTabsList(tabs: SectionTab[], fromIndex: number, toIndex: number): SectionTab[] {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= tabs.length || toIndex >= tabs.length) {
+    return tabs;
+  }
+  const next = [...tabs];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+function templateTabsForCombo(sheets: ComboSheet[], characterId: string, activeId?: string): SectionTab[] {
+  const active = activeId ? sheets.find((s) => s.id === activeId) : undefined;
+  const sibling = active ?? sheets.find((s) => s.characterId === characterId);
+  return cloneTabs(sibling?.tabs ?? DEFAULT_COMBO_TABS);
+}
+
+function templateTabsForMatchup(matchups: Matchup[], opponentId: string, activeId?: string): SectionTab[] {
+  const active = activeId ? matchups.find((m) => m.id === activeId) : undefined;
+  const sibling = active ?? matchups.find((m) => m.opponentId === opponentId);
+  return cloneTabs(sibling?.tabs ?? DEFAULT_MATCHUP_TABS);
+}
+
+function templateTabsForTeam(notes: TeamNote[], pairKey: string, activeId?: string): SectionTab[] {
+  const active = activeId ? notes.find((n) => n.id === activeId) : undefined;
+  const sibling =
+    active ??
+    notes.find((n) => savedTeamKey(n.char1Id, n.char2Id) === pairKey);
+  return cloneTabs(sibling?.tabs ?? DEFAULT_TEAM_TABS);
 }
 
 export const useAppStore = create<AppStore>()(
@@ -120,9 +166,13 @@ export const useAppStore = create<AppStore>()(
       saveStatus: 'saved',
       announcements: [],
       notesViewMode: 'edit',
+      notesLayoutMode: 'tabs',
+      uiScale: 100,
 
       setSaveStatus: (status) => set({ saveStatus: status }),
       setNotesViewMode: (mode) => set({ notesViewMode: mode }),
+      setNotesLayoutMode: (mode) => set({ notesLayoutMode: mode }),
+      setUiScale: (scale) => set({ uiScale: scale }),
       touchRevision: () =>
         set((s) => ({
           syncMeta: {
@@ -133,10 +183,16 @@ export const useAppStore = create<AppStore>()(
         })),
 
       getOrCreateMatchup: (opponentId) => {
+        const activeId = get().activeMatchupIds[opponentId];
+        const active = activeId ? get().matchups.find((m) => m.id === activeId) : undefined;
+        if (active) return active;
         const existing = get().matchups.find((m) => m.opponentId === opponentId);
         if (existing) return existing;
-        const matchup = createMatchup(MATCHUP_PLAYER_ID, opponentId, get().matchupTabs);
-        set((s) => ({ matchups: [...s.matchups, matchup] }));
+        const matchup = createMatchup(MATCHUP_PLAYER_ID, opponentId, DEFAULT_MATCHUP_TABS);
+        set((s) => ({
+          matchups: [...s.matchups, matchup],
+          activeMatchupIds: { ...s.activeMatchupIds, [opponentId]: matchup.id },
+        }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
         return matchup;
@@ -163,10 +219,16 @@ export const useAppStore = create<AppStore>()(
       },
 
       getOrCreateComboSheet: (characterId) => {
+        const activeId = get().activeComboSheetIds[characterId];
+        const active = activeId ? get().comboSheets.find((c) => c.id === activeId) : undefined;
+        if (active) return active;
         const existing = get().comboSheets.find((c) => c.characterId === characterId);
         if (existing) return existing;
-        const sheet = createComboSheet(characterId, get().comboTabs);
-        set((s) => ({ comboSheets: [...s.comboSheets, sheet] }));
+        const sheet = createComboSheet(characterId, DEFAULT_COMBO_TABS);
+        set((s) => ({
+          comboSheets: [...s.comboSheets, sheet],
+          activeComboSheetIds: { ...s.activeComboSheetIds, [characterId]: sheet.id },
+        }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
         return sheet;
@@ -191,60 +253,112 @@ export const useAppStore = create<AppStore>()(
         debouncedSave(get().setSaveStatus);
       },
 
-      addMatchupTab: (label) => {
+      addMatchupTab: (matchupId, label) => {
         const id = generateId();
         set((s) => ({
-          matchupTabs: [...s.matchupTabs, { id, label }],
-          matchups: addSectionToAll(s.matchups, id),
+          matchups: s.matchups.map((m) =>
+            m.id === matchupId
+              ? {
+                  ...m,
+                  tabs: [...m.tabs, { id, label }],
+                  sections: { ...m.sections, [id]: createEmptySection(id) },
+                  updatedAt: new Date().toISOString(),
+                }
+              : m
+          ),
         }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
       },
 
-      removeMatchupTab: (id) => {
+      removeMatchupTab: (matchupId, id) => {
         set((s) => ({
-          matchupTabs: s.matchupTabs.filter((t) => t.id !== id),
           matchups: s.matchups.map((m) => {
+            if (m.id !== matchupId) return m;
             const { [id]: _, ...rest } = m.sections;
-            return { ...m, sections: rest };
+            return {
+              ...m,
+              tabs: m.tabs.filter((t) => t.id !== id),
+              sections: rest,
+              updatedAt: new Date().toISOString(),
+            };
           }),
         }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
       },
 
-      renameMatchupTab: (id, label) => {
+      renameMatchupTab: (matchupId, id, label) => {
         set((s) => ({
-          matchupTabs: s.matchupTabs.map((t) => (t.id === id ? { ...t, label } : t)),
+          matchups: s.matchups.map((m) =>
+            m.id === matchupId
+              ? { ...m, tabs: m.tabs.map((t) => (t.id === id ? { ...t, label } : t)) }
+              : m
+          ),
         }));
         debouncedSave(get().setSaveStatus);
       },
 
-      addComboTab: (label) => {
+      reorderMatchupTabs: (matchupId, fromIndex, toIndex) => {
+        set((s) => ({
+          matchups: s.matchups.map((m) =>
+            m.id === matchupId ? { ...m, tabs: reorderTabsList(m.tabs, fromIndex, toIndex) } : m
+          ),
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      addComboTab: (sheetId, label) => {
         const id = generateId();
         set((s) => ({
-          comboTabs: [...s.comboTabs, { id, label }],
-          comboSheets: addSectionToAll(s.comboSheets, id),
+          comboSheets: s.comboSheets.map((c) =>
+            c.id === sheetId
+              ? {
+                  ...c,
+                  tabs: [...c.tabs, { id, label }],
+                  sections: { ...c.sections, [id]: createEmptySection(id) },
+                  updatedAt: new Date().toISOString(),
+                }
+              : c
+          ),
         }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
       },
 
-      removeComboTab: (id) => {
+      removeComboTab: (sheetId, id) => {
         set((s) => ({
-          comboTabs: s.comboTabs.filter((t) => t.id !== id),
           comboSheets: s.comboSheets.map((c) => {
+            if (c.id !== sheetId) return c;
             const { [id]: _, ...rest } = c.sections;
-            return { ...c, sections: rest };
+            return {
+              ...c,
+              tabs: c.tabs.filter((t) => t.id !== id),
+              sections: rest,
+              updatedAt: new Date().toISOString(),
+            };
           }),
         }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
       },
 
-      renameComboTab: (id, label) => {
+      renameComboTab: (sheetId, id, label) => {
         set((s) => ({
-          comboTabs: s.comboTabs.map((t) => (t.id === id ? { ...t, label } : t)),
+          comboSheets: s.comboSheets.map((c) =>
+            c.id === sheetId
+              ? { ...c, tabs: c.tabs.map((t) => (t.id === id ? { ...t, label } : t)) }
+              : c
+          ),
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      reorderComboTabs: (sheetId, fromIndex, toIndex) => {
+        set((s) => ({
+          comboSheets: s.comboSheets.map((c) =>
+            c.id === sheetId ? { ...c, tabs: reorderTabsList(c.tabs, fromIndex, toIndex) } : c
+          ),
         }));
         debouncedSave(get().setSaveStatus);
       },
@@ -283,12 +397,19 @@ export const useAppStore = create<AppStore>()(
       },
 
       addTeamNote: (char1Id, char2Id) => {
+        const key = savedTeamKey(char1Id, char2Id);
+        const activeId = get().activeTeamNoteIds[key];
+        const active = activeId ? get().teamNotes.find((t) => t.id === activeId) : undefined;
+        if (active) return active;
         const existing = get().teamNotes.find(
-          (t) => [t.char1Id, t.char2Id].sort().join() === [char1Id, char2Id].sort().join()
+          (t) => savedTeamKey(t.char1Id, t.char2Id) === key
         );
         if (existing) return existing;
-        const team = createTeamNote(char1Id, char2Id, get().teamTabs);
-        set((s) => ({ teamNotes: [...s.teamNotes, team] }));
+        const team = createTeamNote(char1Id, char2Id, templateTabsForTeam(get().teamNotes, key));
+        set((s) => ({
+          teamNotes: [...s.teamNotes, team],
+          activeTeamNoteIds: { ...s.activeTeamNoteIds, [key]: team.id },
+        }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
         return team;
@@ -313,31 +434,57 @@ export const useAppStore = create<AppStore>()(
         debouncedSave(get().setSaveStatus);
       },
 
-      addTeamTab: (label) => {
+      addTeamTab: (teamNoteId, label) => {
         const id = generateId();
         set((s) => ({
-          teamTabs: [...s.teamTabs, { id, label }],
-          teamNotes: addSectionToAll(s.teamNotes, id),
+          teamNotes: s.teamNotes.map((t) =>
+            t.id === teamNoteId
+              ? {
+                  ...t,
+                  tabs: [...t.tabs, { id, label }],
+                  sections: { ...t.sections, [id]: createEmptySection(id) },
+                  updatedAt: new Date().toISOString(),
+                }
+              : t
+          ),
         }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
       },
 
-      removeTeamTab: (id) => {
+      removeTeamTab: (teamNoteId, id) => {
         set((s) => ({
-          teamTabs: s.teamTabs.filter((t) => t.id !== id),
           teamNotes: s.teamNotes.map((t) => {
+            if (t.id !== teamNoteId) return t;
             const { [id]: _, ...rest } = t.sections;
-            return { ...t, sections: rest };
+            return {
+              ...t,
+              tabs: t.tabs.filter((tab) => tab.id !== id),
+              sections: rest,
+              updatedAt: new Date().toISOString(),
+            };
           }),
         }));
         get().touchRevision();
         debouncedSave(get().setSaveStatus);
       },
 
-      renameTeamTab: (id, label) => {
+      renameTeamTab: (teamNoteId, id, label) => {
         set((s) => ({
-          teamTabs: s.teamTabs.map((t) => (t.id === id ? { ...t, label } : t)),
+          teamNotes: s.teamNotes.map((t) =>
+            t.id === teamNoteId
+              ? { ...t, tabs: t.tabs.map((tab) => (tab.id === id ? { ...tab, label } : tab)) }
+              : t
+          ),
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      reorderTeamTabs: (teamNoteId, fromIndex, toIndex) => {
+        set((s) => ({
+          teamNotes: s.teamNotes.map((t) =>
+            t.id === teamNoteId ? { ...t, tabs: reorderTabsList(t.tabs, fromIndex, toIndex) } : t
+          ),
         }));
         debouncedSave(get().setSaveStatus);
       },
@@ -385,6 +532,201 @@ export const useAppStore = create<AppStore>()(
         debouncedSave(get().setSaveStatus);
       },
 
+      updateSavedTeam: (teamId, char1Id, char2Id) => {
+        if (char1Id === char2Id) return null;
+        const oldTeam = get().savedTeams.find((t) => t.id === teamId);
+        if (!oldTeam) return null;
+        const oldKey = savedTeamKey(oldTeam.char1Id, oldTeam.char2Id);
+        const newKey = savedTeamKey(char1Id, char2Id);
+        const clash = get().savedTeams.find(
+          (t) => t.id !== teamId && savedTeamKey(t.char1Id, t.char2Id) === newKey
+        );
+        if (clash) return null;
+        const updated = get().savedTeams.map((t) =>
+          t.id === teamId ? { ...t, char1Id, char2Id } : t
+        );
+        set((s) => {
+          const activeTeamNoteIds = { ...s.activeTeamNoteIds };
+          if (oldKey !== newKey) {
+            if (activeTeamNoteIds[oldKey]) {
+              activeTeamNoteIds[newKey] = activeTeamNoteIds[oldKey];
+              delete activeTeamNoteIds[oldKey];
+            }
+          }
+          return {
+            savedTeams: updated,
+            teamNotes: s.teamNotes.map((note) =>
+              savedTeamKey(note.char1Id, note.char2Id) === oldKey
+                ? { ...note, char1Id, char2Id }
+                : note
+            ),
+            activeTeamNoteIds,
+          };
+        });
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+        return updated.find((t) => t.id === teamId) ?? null;
+      },
+
+      addComboInstance: (characterId, label) => {
+        const sheet = createComboSheet(
+          characterId,
+          templateTabsForCombo(get().comboSheets, characterId),
+          label.trim() || 'Main'
+        );
+        set((s) => ({
+          comboSheets: [...s.comboSheets, sheet],
+          activeComboSheetIds: { ...s.activeComboSheetIds, [characterId]: sheet.id },
+        }));
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+        return sheet;
+      },
+
+      renameComboInstance: (sheetId, label) => {
+        set((s) => ({
+          comboSheets: s.comboSheets.map((c) =>
+            c.id === sheetId ? { ...c, label: label.trim() || c.label } : c
+          ),
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      removeComboInstance: (sheetId) => {
+        const sheet = get().comboSheets.find((c) => c.id === sheetId);
+        if (!sheet) return;
+        const siblings = get().comboSheets.filter((c) => c.characterId === sheet.characterId);
+        if (siblings.length <= 1) return;
+        const next = siblings.find((c) => c.id !== sheetId);
+        set((s) => ({
+          comboSheets: s.comboSheets.filter((c) => c.id !== sheetId),
+          activeComboSheetIds: {
+            ...s.activeComboSheetIds,
+            [sheet.characterId]:
+              s.activeComboSheetIds[sheet.characterId] === sheetId && next
+                ? next.id
+                : s.activeComboSheetIds[sheet.characterId],
+          },
+        }));
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+      },
+
+      setActiveComboSheet: (characterId, sheetId) => {
+        set((s) => ({
+          activeComboSheetIds: { ...s.activeComboSheetIds, [characterId]: sheetId },
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      addMatchupInstance: (opponentId, label) => {
+        const matchup = createMatchup(
+          MATCHUP_PLAYER_ID,
+          opponentId,
+          templateTabsForMatchup(get().matchups, opponentId),
+          label.trim() || 'Main'
+        );
+        set((s) => ({
+          matchups: [...s.matchups, matchup],
+          activeMatchupIds: { ...s.activeMatchupIds, [opponentId]: matchup.id },
+        }));
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+        return matchup;
+      },
+
+      renameMatchupInstance: (matchupId, label) => {
+        set((s) => ({
+          matchups: s.matchups.map((m) =>
+            m.id === matchupId ? { ...m, label: label.trim() || m.label } : m
+          ),
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      removeMatchupInstance: (matchupId) => {
+        const matchup = get().matchups.find((m) => m.id === matchupId);
+        if (!matchup) return;
+        const siblings = get().matchups.filter((m) => m.opponentId === matchup.opponentId);
+        if (siblings.length <= 1) return;
+        const next = siblings.find((m) => m.id !== matchupId);
+        set((s) => ({
+          matchups: s.matchups.filter((m) => m.id !== matchupId),
+          activeMatchupIds: {
+            ...s.activeMatchupIds,
+            [matchup.opponentId]:
+              s.activeMatchupIds[matchup.opponentId] === matchupId && next
+                ? next.id
+                : s.activeMatchupIds[matchup.opponentId],
+          },
+        }));
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+      },
+
+      setActiveMatchup: (opponentId, matchupId) => {
+        set((s) => ({
+          activeMatchupIds: { ...s.activeMatchupIds, [opponentId]: matchupId },
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      addTeamNoteInstance: (char1Id, char2Id, label) => {
+        const key = savedTeamKey(char1Id, char2Id);
+        const team = createTeamNote(
+          char1Id,
+          char2Id,
+          templateTabsForTeam(get().teamNotes, key),
+          label.trim() || 'Main'
+        );
+        set((s) => ({
+          teamNotes: [...s.teamNotes, team],
+          activeTeamNoteIds: { ...s.activeTeamNoteIds, [key]: team.id },
+        }));
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+        return team;
+      },
+
+      renameTeamNoteInstance: (teamNoteId, label) => {
+        set((s) => ({
+          teamNotes: s.teamNotes.map((t) =>
+            t.id === teamNoteId ? { ...t, label: label.trim() || t.label } : t
+          ),
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
+      removeTeamNoteInstance: (teamNoteId) => {
+        const note = get().teamNotes.find((t) => t.id === teamNoteId);
+        if (!note) return;
+        const key = savedTeamKey(note.char1Id, note.char2Id);
+        const siblings = get().teamNotes.filter(
+          (t) => savedTeamKey(t.char1Id, t.char2Id) === key
+        );
+        if (siblings.length <= 1) return;
+        const next = siblings.find((t) => t.id !== teamNoteId);
+        set((s) => ({
+          teamNotes: s.teamNotes.filter((t) => t.id !== teamNoteId),
+          activeTeamNoteIds: {
+            ...s.activeTeamNoteIds,
+            [key]:
+              s.activeTeamNoteIds[key] === teamNoteId && next
+                ? next.id
+                : s.activeTeamNoteIds[key],
+          },
+        }));
+        get().touchRevision();
+        debouncedSave(get().setSaveStatus);
+      },
+
+      setActiveTeamNote: (pairKey, teamNoteId) => {
+        set((s) => ({
+          activeTeamNoteIds: { ...s.activeTeamNoteIds, [pairKey]: teamNoteId },
+        }));
+        debouncedSave(get().setSaveStatus);
+      },
+
       setLocale: (locale) => {
         set({ locale });
         document.documentElement.lang = locale;
@@ -424,28 +766,46 @@ export const useAppStore = create<AppStore>()(
         const state = get();
         const {
           matchupTabs, comboTabs, teamTabs, matchups, comboSheets, combos, players,
-          frameData, teamNotes, savedTeams, activeSavedTeamId, locale, syncMeta, dismissedAnnouncements,
+          frameData, teamNotes, savedTeams, activeSavedTeamId,
+          activeComboSheetIds, activeMatchupIds, activeTeamNoteIds,
+          locale, syncMeta, dismissedAnnouncements,
         } = state;
         return {
           matchupTabs, comboTabs, teamTabs, matchups, comboSheets, combos, players,
-          frameData, teamNotes, savedTeams, activeSavedTeamId, locale, syncMeta, dismissedAnnouncements,
+          frameData, teamNotes, savedTeams, activeSavedTeamId,
+          activeComboSheetIds, activeMatchupIds, activeTeamNoteIds,
+          locale, syncMeta, dismissedAnnouncements,
         };
       },
 
       importData: (data) => {
-        const notes = (data.teamNotes ?? []).map((n) => migrateTeamNote(n as TeamNote));
+        const globalMatchupTabs = data.matchupTabs ?? DEFAULT_MATCHUP_TABS;
+        const globalComboTabs = data.comboTabs ?? DEFAULT_COMBO_TABS;
+        const globalTeamTabs = data.teamTabs ?? DEFAULT_TEAM_TABS;
+        const teamNotes = (data.teamNotes ?? []).map((n) =>
+          migrateTeamNote(n as TeamNote, globalTeamTabs)
+        );
+        const comboSheets = (data.comboSheets ?? []).map((s) =>
+          migrateComboSheet(s as ComboSheet, globalComboTabs)
+        );
+        const matchups = (data.matchups ?? []).map((m) =>
+          migrateMatchup(m as Matchup, globalMatchupTabs)
+        );
         set({
-          matchupTabs: data.matchupTabs ?? DEFAULT_MATCHUP_TABS,
-          comboTabs: data.comboTabs ?? DEFAULT_COMBO_TABS,
-          teamTabs: data.teamTabs ?? DEFAULT_TEAM_TABS,
-          matchups: data.matchups ?? [],
-          comboSheets: data.comboSheets ?? [],
+          matchupTabs: globalMatchupTabs,
+          comboTabs: globalComboTabs,
+          teamTabs: globalTeamTabs,
+          matchups,
+          comboSheets,
           combos: data.combos ?? [],
           players: data.players ?? [],
           frameData: data.frameData ?? [],
-          teamNotes: notes,
+          teamNotes,
           savedTeams: data.savedTeams ?? [],
           activeSavedTeamId: data.activeSavedTeamId ?? null,
+          activeComboSheetIds: data.activeComboSheetIds ?? {},
+          activeMatchupIds: data.activeMatchupIds ?? {},
+          activeTeamNoteIds: data.activeTeamNoteIds ?? {},
           locale: data.locale ?? 'en',
           syncMeta: { ...createDefaultSyncMeta(), ...(data.syncMeta ?? {}) },
           dismissedAnnouncements: data.dismissedAnnouncements ?? [],
@@ -468,31 +828,52 @@ export const useAppStore = create<AppStore>()(
         teamNotes: state.teamNotes,
         savedTeams: state.savedTeams,
         activeSavedTeamId: state.activeSavedTeamId,
+        activeComboSheetIds: state.activeComboSheetIds,
+        activeMatchupIds: state.activeMatchupIds,
+        activeTeamNoteIds: state.activeTeamNoteIds,
         locale: state.locale,
         syncMeta: state.syncMeta,
         dismissedAnnouncements: state.dismissedAnnouncements,
         notesViewMode: state.notesViewMode,
+        notesLayoutMode: state.notesLayoutMode,
+        uiScale: state.uiScale,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppData> & {
           notesViewMode?: NotesViewMode | Record<string, NotesViewMode>;
+          notesLayoutMode?: NotesLayoutMode;
+          uiScale?: number;
         };
-        const teamNotes = (p?.teamNotes ?? []).map((n) => migrateTeamNote(n));
+        const globalMatchupTabs = p?.matchupTabs ?? DEFAULT_MATCHUP_TABS;
+        const globalComboTabs = p?.comboTabs ?? DEFAULT_COMBO_TABS;
+        const globalTeamTabs = p?.teamTabs ?? DEFAULT_TEAM_TABS;
+        const teamNotes = (p?.teamNotes ?? []).map((n) => migrateTeamNote(n, globalTeamTabs));
+        const comboSheets = (p?.comboSheets ?? []).map((s) => migrateComboSheet(s, globalComboTabs));
+        const matchups = (p?.matchups ?? []).map((m) => migrateMatchup(m, globalMatchupTabs));
         return {
           ...current,
           ...p,
           matchupTabs: p?.matchupTabs ?? DEFAULT_MATCHUP_TABS,
           comboTabs: p?.comboTabs ?? DEFAULT_COMBO_TABS,
           teamTabs: p?.teamTabs ?? DEFAULT_TEAM_TABS,
-          comboSheets: p?.comboSheets ?? [],
+          comboSheets,
+          matchups,
           teamNotes,
           savedTeams: p?.savedTeams ?? [],
           activeSavedTeamId: p?.activeSavedTeamId ?? null,
+          activeComboSheetIds: p?.activeComboSheetIds ?? {},
+          activeMatchupIds: p?.activeMatchupIds ?? {},
+          activeTeamNoteIds: p?.activeTeamNoteIds ?? {},
           locale: p?.locale ?? 'en',
           notesViewMode:
             p?.notesViewMode === 'preview' || p?.notesViewMode === 'edit'
               ? p.notesViewMode
               : current.notesViewMode,
+          notesLayoutMode:
+            p?.notesLayoutMode === 'tabs' || p?.notesLayoutMode === 'stacked'
+              ? p.notesLayoutMode
+              : current.notesLayoutMode,
+          uiScale: typeof p?.uiScale === 'number' ? p.uiScale : current.uiScale,
         };
       },
     }

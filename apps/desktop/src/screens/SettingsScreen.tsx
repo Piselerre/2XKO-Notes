@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
+import { Link } from 'react-router-dom';
+
 import { Layout } from '@/components/Layout';
 import { useAppStore } from '@2xko/core';
 import type { AppData } from '@2xko/core';
 import { APP_VERSION } from '@/constants/version';
 import { getDataFilePath, saveToDataFile, SYNC_FILENAME } from '@/services/fileStorage';
-import { connectGoogleDrive, disconnectGoogleDrive } from '@/services/googleDrive';
+import { connectGoogleDrive, disconnectGoogleDrive, pullFromGoogleDrive, pushToGoogleDrive } from '@/services/googleDrive';
 import { isTauriHost } from '@/utils/platform';
 import { checkForUpdates, type UpdateCheckResult } from '@/services/remote';
 import { DevSettingsPanel } from '@/components/DevSettingsPanel';
@@ -305,6 +307,36 @@ export function SettingsScreen() {
                   {t('settings.lastSync')}: {new Date(syncMeta.lastSyncAt).toLocaleString()}
                 </p>
               )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="xko-btn xko-btn--outline"
+                  disabled={driveBusy || !tauriApp}
+                  onClick={() => {
+                    setDriveBusy(true);
+                    setDriveError('');
+                    void pushToGoogleDrive(true)
+                      .catch((e) => setDriveError(String(e)))
+                      .finally(() => setDriveBusy(false));
+                  }}
+                >
+                  {t('settings.driveSyncNow')}
+                </button>
+                <button
+                  type="button"
+                  className="xko-btn xko-btn--ghost"
+                  disabled={driveBusy || !tauriApp}
+                  onClick={() => {
+                    setDriveBusy(true);
+                    setDriveError('');
+                    void pullFromGoogleDrive()
+                      .catch((e) => setDriveError(String(e)))
+                      .finally(() => setDriveBusy(false));
+                  }}
+                >
+                  {t('settings.drivePullNow')}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => void handleDisconnectGoogle()}
@@ -331,7 +363,11 @@ export function SettingsScreen() {
           <h2 className="font-display text-xs font-bold tracking-widest text-text-muted uppercase">
             {t('settings.backup')}
           </h2>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <p className="mt-2 text-sm text-text-muted">{t('settings.backupRetention')}</p>
+          <Link to="/settings/backups" className="xko-btn xko-btn--lime mt-3 inline-flex">
+            {t('settings.backupOpenManager')}
+          </Link>
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
             <button type="button" onClick={handleExport} className="xko-btn xko-btn--ghost">
               {t('settings.export')}
             </button>

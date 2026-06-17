@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CachedImage } from './CachedImage';
 
 import { getCharacterImage, getCharacterImageFallback } from '@/data/manifest';
+import { withMobilePreview } from '@/utils/mobilePreview';
 
 
 
@@ -126,7 +127,7 @@ export function SectionCard({
 
   return (
 
-    <Link to={to ?? '/'} className={cls} style={style}>
+    <Link to={withMobilePreview(to ?? '/')} className={cls} style={style}>
 
       {inner}
 

@@ -12,13 +12,13 @@ if (!version) {
 }
 
 const repo = 'Piselerre/2XKO-Notes';
-const zipName = `2XKO.Notes_${version}_x64-portable.zip`;
-const url = `https://github.com/${repo}/releases/download/v${version}/${zipName}`;
+const exeName = `2XKO.Notes_${version}_x64-portable.exe`;
+const url = `https://github.com/${repo}/releases/download/v${version}/${exeName}`;
 
 const latest = {
   version,
-  format: 'zip',
-  notes: `2XKO Notes v${version} (portable zip)`,
+  format: 'exe',
+  notes: `2XKO Notes v${version} (portable exe)`,
   pub_date: new Date().toISOString(),
   platforms: {
     'windows-x86_64': {

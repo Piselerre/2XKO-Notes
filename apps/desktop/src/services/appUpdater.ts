@@ -1,5 +1,5 @@
 import { APP_VERSION } from '@/constants/version';
-import { isDesktopApp } from '@/utils/isDesktopApp';
+import { isDesktopApp } from '@/utils/platform';
 import { checkForUpdates } from '@/services/remote';
 import { runUpdateCheck, type UpdateCheckReport } from '@/services/appManifest';
 import { openExternal } from '@/utils/openExternal';

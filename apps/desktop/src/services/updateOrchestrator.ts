@@ -28,12 +28,12 @@ export type UpdatePhase =
 export type UpdatePlan =
   | { kind: 'none' }
   | { kind: 'content'; manifest: AppManifest }
-  | { kind: 'binary'; version: string; silent?: boolean; zipUrl?: string };
+  | { kind: 'binary'; version: string; silent?: boolean; zipUrl?: string; exeUrl?: string };
 
 type PendingUpdate = {
   install: () => Promise<void>;
   version: string;
-  mode: 'zip' | 'tauri';
+  mode: 'zip' | 'exe' | 'tauri';
 };
 
 let pendingBinary: PendingUpdate | null = null;
@@ -43,7 +43,7 @@ function canReceivePortableBinaryUpdate(currentVersion: string, remoteVersion: s
   return IS_PORTABLE_BUILD || isAtLeastVersion(currentVersion, PORTABLE_CHANNEL_MIN_VERSION);
 }
 
-async function fetchPortableZipUrl(): Promise<{ version: string; url: string } | null> {
+async function fetchPortableBinaryUrl(): Promise<{ version: string; url: string; format: 'exe' | 'zip' } | null> {
   try {
     const res = await fetch(PUBLIC_PORTABLE_UPDATER_URL, { cache: 'no-store' });
     if (!res.ok) return null;
@@ -54,8 +54,9 @@ async function fetchPortableZipUrl(): Promise<{ version: string; url: string } |
     };
     const version = (json.version ?? '').replace(/^v/i, '');
     const url = json.platforms?.['windows-x86_64']?.url;
-    if (!version || !url || json.format !== 'zip') return null;
-    return { version, url };
+    const format = json.format === 'exe' ? 'exe' : json.format === 'zip' ? 'zip' : null;
+    if (!version || !url || !format) return null;
+    return { version, url, format };
   } catch {
     return null;
   }
@@ -82,13 +83,15 @@ export async function checkUpdatePlan(currentVersion: string = APP_VERSION): Pro
     }
 
     if (IS_PORTABLE_BUILD && isDesktopApp()) {
-      const portable = await fetchPortableZipUrl();
+      const portable = await fetchPortableBinaryUrl();
       if (portable && isNewerVersion(portable.version, currentVersion)) {
         return {
           kind: 'binary',
           version: portable.version,
           silent: true,
-          zipUrl: portable.url,
+          ...(portable.format === 'exe'
+            ? { exeUrl: portable.url }
+            : { zipUrl: portable.url }),
         };
       }
     }
@@ -153,6 +156,28 @@ export async function prepareBinaryUpdate(
   onProgress: (percent: number) => void
 ): Promise<boolean> {
   if (!isDesktopApp()) return false;
+
+  if (plan.exeUrl) {
+    try {
+      onProgress(2);
+      const exePath = `C:\\Windows\\Temp\\2xko-update-${plan.version}.exe`;
+      onProgress(10);
+      await invoke('download_file', { url: plan.exeUrl, dest: exePath });
+      onProgress(100);
+      pendingBinary = {
+        version: plan.version,
+        mode: 'exe',
+        install: async () => {
+          await invoke('apply_portable_exe_update', { newExePath: exePath });
+        },
+      };
+      return true;
+    } catch (e) {
+      console.warn('prepareBinaryUpdate (exe):', e);
+      pendingBinary = null;
+      return false;
+    }
+  }
 
   if (plan.zipUrl) {
     try {
@@ -224,7 +249,7 @@ export async function installPreparedUpdate(version: string, options?: { silent?
     setJustUpdatedVersion(version);
   }
   await pendingBinary.install();
-  if (pendingBinary.mode === 'zip') {
+  if (pendingBinary.mode === 'zip' || pendingBinary.mode === 'exe') {
     const { exit } = await import('@tauri-apps/plugin-process');
     await exit(0);
     return;

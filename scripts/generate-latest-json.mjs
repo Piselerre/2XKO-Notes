@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '..');
 const version = process.argv[2];
 if (!version) {
   console.error('Usage: node scripts/generate-latest-json.mjs <version>');
+  console.error('Legacy installer channel only (0.4.x). Do NOT publish 0.5.0+ here.');
   process.exit(1);
 }
 

@@ -7,9 +7,12 @@ import { CharacterCard } from '@/components/CharacterCard';
 import { NoteDetailPanel } from '@/components/NoteDetailPanel';
 import { SavedTeamsBar } from '@/components/SavedTeamsBar';
 import { CharacterBoxHeader } from '@/components/CharacterBoxHeader';
+import { InstanceBar } from '@/components/InstanceBar';
 import { TeamCreatorModal } from '@/components/TeamCreatorModal';
 import { getCharacter, getCharacterPortraitFallback, getCharacterPortraitSrc } from '@/data/manifest';
 import { useCharacterRoster } from '@/hooks/useCharacterRoster';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { withMobilePreview } from '@/utils/mobilePreview';
 import { preloadImages } from '@/utils/imageCache';
 import { useAppStore } from '@2xko/core';
 import { useI18n } from '@/hooks/useI18n';
@@ -17,11 +20,11 @@ import { useI18n } from '@/hooks/useI18n';
 function ComboList() {
   const [search, setSearch] = useState('');
   const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<{ id: string; char1Id: string; char2Id: string } | null>(null);
   const characters = useCharacterRoster();
   const savedTeams = useAppStore((s) => s.savedTeams);
   const activeSavedTeamId = useAppStore((s) => s.activeSavedTeamId);
   const navigate = useNavigate();
-  const addSavedTeam = useAppStore((s) => s.addSavedTeam);
   const addTeamNote = useAppStore((s) => s.addTeamNote);
   const removeSavedTeam = useAppStore((s) => s.removeSavedTeam);
   const setActiveSavedTeam = useAppStore((s) => s.setActiveSavedTeam);
@@ -52,7 +55,11 @@ function ComboList() {
             onOpenTeam={(team) => {
               setActiveSavedTeam(team.id);
               addTeamNote(team.char1Id, team.char2Id);
-              navigate(`/team-notes/${team.char1Id}/${team.char2Id}`);
+              navigate(withMobilePreview(`/team-notes/${team.char1Id}/${team.char2Id}`));
+            }}
+            onEdit={(team) => {
+              setEditingTeam({ id: team.id, char1Id: team.char1Id, char2Id: team.char2Id });
+              setTeamModalOpen(true);
             }}
             onRemove={removeSavedTeam}
           />
@@ -83,11 +90,15 @@ function ComboList() {
       <TeamCreatorModal
         open={teamModalOpen}
         characters={characters}
-        onClose={() => setTeamModalOpen(false)}
-        onSave={(char1Id, char2Id) => {
-          addSavedTeam(char1Id, char2Id);
-          addTeamNote(char1Id, char2Id);
+        title={editingTeam ? t('teams.editTitle') : undefined}
+        editTeamId={editingTeam?.id ?? null}
+        editChar1Id={editingTeam?.char1Id ?? null}
+        editChar2Id={editingTeam?.char2Id ?? null}
+        onClose={() => {
+          setTeamModalOpen(false);
+          setEditingTeam(null);
         }}
+        onSaved={() => setEditingTeam(null)}
       />
     </Layout>
   );
@@ -96,16 +107,22 @@ function ComboList() {
 function ComboDetail() {
   const { characterId } = useParams<{ characterId: string }>();
   const character = characterId ? getCharacter(characterId) : undefined;
-  const comboTabs = useAppStore((s) => s.comboTabs);
   const comboSheets = useAppStore((s) => s.comboSheets);
+  const activeComboSheetIds = useAppStore((s) => s.activeComboSheetIds);
   const getOrCreateComboSheet = useAppStore((s) => s.getOrCreateComboSheet);
   const updateComboSection = useAppStore((s) => s.updateComboSection);
   const addComboTab = useAppStore((s) => s.addComboTab);
   const removeComboTab = useAppStore((s) => s.removeComboTab);
   const renameComboTab = useAppStore((s) => s.renameComboTab);
-  const [activeTab, setActiveTab] = useState(comboTabs[0]?.id ?? 'midscreen');
+  const reorderComboTabs = useAppStore((s) => s.reorderComboTabs);
+  const addComboInstance = useAppStore((s) => s.addComboInstance);
+  const renameComboInstance = useAppStore((s) => s.renameComboInstance);
+  const removeComboInstance = useAppStore((s) => s.removeComboInstance);
+  const setActiveComboSheet = useAppStore((s) => s.setActiveComboSheet);
+  const [activeTab, setActiveTab] = useState('midscreen');
   const [ready, setReady] = useState(false);
   const { t } = useI18n();
+  const mobile = useIsMobile();
 
   useEffect(() => {
     if (characterId) {
@@ -113,6 +130,19 @@ function ComboDetail() {
       setReady(true);
     }
   }, [characterId, getOrCreateComboSheet]);
+
+  const instances = characterId
+    ? comboSheets.filter((c) => c.characterId === characterId)
+    : [];
+  const activeSheetId = characterId ? activeComboSheetIds[characterId] : undefined;
+  const sheet = instances.find((c) => c.id === activeSheetId) ?? instances[0];
+
+  useEffect(() => {
+    if (!sheet) return;
+    if (!sheet.tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(sheet.tabs[0]?.id ?? 'midscreen');
+    }
+  }, [sheet?.id, sheet?.tabs, activeTab]);
 
   if (!character) {
     return (
@@ -122,9 +152,10 @@ function ComboDetail() {
     );
   }
 
-  const sheet = comboSheets.find((c) => c.characterId === characterId);
-
   if (!ready || !sheet) {
+    if (mobile) {
+      return <p className="mobile-note__loading">{t('common.loading')}</p>;
+    }
     return (
       <Layout headerContent={<CharacterBoxHeader character={character} />} backTo="/combos">
         <p className="text-text-muted">{t('common.loading')}</p>
@@ -132,18 +163,48 @@ function ComboDetail() {
     );
   }
 
+  const instanceProps = {
+    instances: instances.map((i) => ({ id: i.id, label: i.label })),
+    activeId: sheet.id,
+    onSelect: (id: string) => characterId && setActiveComboSheet(characterId, id),
+    onAdd: (label: string) => characterId && addComboInstance(characterId, label),
+    onRemove: removeComboInstance,
+  };
+
+  const panel = (
+    <NoteDetailPanel
+      tabs={sheet.tabs}
+      sections={sheet.sections}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      onAddTab={(label) => addComboTab(sheet.id, label)}
+      onRemoveTab={(id) => removeComboTab(sheet.id, id)}
+      onRenameTab={(id, label) => renameComboTab(sheet.id, id, label)}
+      onReorderTabs={(from, to) => reorderComboTabs(sheet.id, from, to)}
+      onUpdateSection={(sid, data) => updateComboSection(sheet.id, sid, data)}
+      instanceProps={instanceProps}
+      mobileShell={mobile ? { backTo: '/combos', backLabel: t('combos.back'), subtitle: character.name } : undefined}
+      instanceBar={
+        mobile ? undefined : (
+          <InstanceBar
+            instances={instanceProps.instances}
+            activeId={instanceProps.activeId}
+            onSelect={instanceProps.onSelect}
+            onAdd={instanceProps.onAdd}
+            onRename={renameComboInstance}
+            onRemove={instanceProps.onRemove}
+          />
+        )
+      }
+      showLayoutToggle={!mobile}
+    />
+  );
+
+  if (mobile) return panel;
+
   return (
     <Layout headerContent={<CharacterBoxHeader character={character} />} backTo="/combos" backLabel={t('combos.back')}>
-      <NoteDetailPanel
-        tabs={comboTabs}
-        sections={sheet.sections}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onAddTab={addComboTab}
-        onRemoveTab={removeComboTab}
-        onRenameTab={renameComboTab}
-        onUpdateSection={(sid, data) => updateComboSection(sheet.id, sid, data)}
-      />
+      {panel}
     </Layout>
   );
 }

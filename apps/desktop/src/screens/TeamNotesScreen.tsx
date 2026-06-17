@@ -1,6 +1,7 @@
 import { Routes, Route, useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
+import { InstanceBar } from '@/components/InstanceBar';
 import { Layout } from '@/components/Layout';
 import { CharacterGrid } from '@/components/CharacterGrid';
 import { NoteDetailPanel } from '@/components/NoteDetailPanel';
@@ -8,7 +9,9 @@ import { TeamPairHeader } from '@/components/TeamPairHeader';
 import { CharacterCard } from '@/components/CharacterCard';
 import { getCharacter } from '@/data/manifest';
 import { useCharacterRoster } from '@/hooks/useCharacterRoster';
-import { useAppStore } from '@2xko/core';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { withMobilePreview } from '@/utils/mobilePreview';
+import { savedTeamKey, useAppStore } from '@2xko/core';
 import { useI18n } from '@/hooks/useI18n';
 
 function TeamSelectFirst() {
@@ -53,26 +56,83 @@ function TeamDetail() {
   const char2 = getCharacter(char2Id!);
   const addTeamNote = useAppStore((s) => s.addTeamNote);
   const updateTeamSection = useAppStore((s) => s.updateTeamSection);
-  const teamTabs = useAppStore((s) => s.teamTabs);
   const addTeamTab = useAppStore((s) => s.addTeamTab);
   const removeTeamTab = useAppStore((s) => s.removeTeamTab);
   const renameTeamTab = useAppStore((s) => s.renameTeamTab);
+  const reorderTeamTabs = useAppStore((s) => s.reorderTeamTabs);
   const teamNotes = useAppStore((s) => s.teamNotes);
-  const [activeTab, setActiveTab] = useState(teamTabs[0]?.id ?? 'synergies');
-  const [teamId, setTeamId] = useState<string | null>(null);
+  const activeTeamNoteIds = useAppStore((s) => s.activeTeamNoteIds);
+  const addTeamNoteInstance = useAppStore((s) => s.addTeamNoteInstance);
+  const renameTeamNoteInstance = useAppStore((s) => s.renameTeamNoteInstance);
+  const removeTeamNoteInstance = useAppStore((s) => s.removeTeamNoteInstance);
+  const setActiveTeamNote = useAppStore((s) => s.setActiveTeamNote);
+  const [activeTab, setActiveTab] = useState('synergies');
   const { t } = useI18n();
+  const mobile = useIsMobile();
 
   useEffect(() => {
     if (char1Id && char2Id) {
-      const note = addTeamNote(char1Id, char2Id);
-      setTeamId(note.id);
+      addTeamNote(char1Id, char2Id);
     }
   }, [char1Id, char2Id, addTeamNote]);
 
-  if (!char1 || !char2) return null;
+  const pairKey = char1Id && char2Id ? savedTeamKey(char1Id, char2Id) : '';
+  const instances = pairKey
+    ? teamNotes.filter((n) => savedTeamKey(n.char1Id, n.char2Id) === pairKey)
+    : [];
+  const activeNoteId = pairKey ? activeTeamNoteIds[pairKey] : undefined;
+  const team = instances.find((n) => n.id === activeNoteId) ?? instances[0];
 
-  const team = teamNotes.find((n) => n.id === teamId);
+  useEffect(() => {
+    if (!team) return;
+    if (!team.tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(team.tabs[0]?.id ?? 'synergies');
+    }
+  }, [team?.id, team?.tabs, activeTab]);
+
+  if (!char1 || !char2) return null;
   if (!team) return null;
+
+  const instanceProps = {
+    instances: instances.map((i) => ({ id: i.id, label: i.label })),
+    activeId: team.id,
+    onSelect: (id: string) => setActiveTeamNote(pairKey, id),
+    onAdd: (label: string) => addTeamNoteInstance(char1Id!, char2Id!, label),
+    onRemove: removeTeamNoteInstance,
+  };
+
+  const subtitle = `${char1.name} + ${char2.name}`;
+
+  const panel = (
+    <NoteDetailPanel
+      tabs={team.tabs}
+      sections={team.sections}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      onAddTab={(label) => addTeamTab(team.id, label)}
+      onRemoveTab={(id) => removeTeamTab(team.id, id)}
+      onRenameTab={(id, label) => renameTeamTab(team.id, id, label)}
+      onReorderTabs={(from, to) => reorderTeamTabs(team.id, from, to)}
+      onUpdateSection={(sid, data) => updateTeamSection(team.id, sid, data)}
+      instanceProps={instanceProps}
+      mobileShell={mobile ? { backTo: '/team-notes', backLabel: t('teamNotes.back'), subtitle } : undefined}
+      instanceBar={
+        mobile ? undefined : (
+          <InstanceBar
+            instances={instanceProps.instances}
+            activeId={instanceProps.activeId}
+            onSelect={instanceProps.onSelect}
+            onAdd={instanceProps.onAdd}
+            onRename={renameTeamNoteInstance}
+            onRemove={instanceProps.onRemove}
+          />
+        )
+      }
+      showLayoutToggle={!mobile}
+    />
+  );
+
+  if (mobile) return panel;
 
   return (
     <Layout
@@ -80,16 +140,7 @@ function TeamDetail() {
       backTo="/combos"
       backLabel={`← ${t('combos.title')}`}
     >
-      <NoteDetailPanel
-        tabs={teamTabs}
-        sections={team.sections}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onAddTab={addTeamTab}
-        onRemoveTab={removeTeamTab}
-        onRenameTab={renameTeamTab}
-        onUpdateSection={(sid, data) => updateTeamSection(team.id, sid, data)}
-      />
+      {panel}
     </Layout>
   );
 }
@@ -104,7 +155,7 @@ function TeamList() {
       <div className="mb-6 flex justify-between">
         <p className="text-text-muted">{t('teamNotes.saved')}</p>
         <Link
-          to="/team-notes/new"
+          to={withMobilePreview('/team-notes/new')}
           className="rounded-lg bg-accent/20 px-4 py-2 text-sm font-medium text-accent hover:bg-accent/30"
         >
           + {t('teamNotes.newTeam')}
@@ -118,7 +169,7 @@ function TeamList() {
           return (
             <div key={team.id} className="saved-team-card group">
               <Link
-                to={`/team-notes/${team.char1Id}/${team.char2Id}`}
+                to={withMobilePreview(`/team-notes/${team.char1Id}/${team.char2Id}`)}
                 className="saved-team-card__main"
               >
                 <div className="saved-team-card__pair">

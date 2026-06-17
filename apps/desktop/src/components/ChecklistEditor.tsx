@@ -5,9 +5,10 @@ import { useI18n } from '@/hooks/useI18n';
 interface ChecklistEditorProps {
   items: ChecklistItem[];
   onChange: (items: ChecklistItem[]) => void;
+  readOnly?: boolean;
 }
 
-export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
+export function ChecklistEditor({ items, onChange, readOnly = false }: ChecklistEditorProps) {
   const { t } = useI18n();
 
   const toggle = (id: string) => {
@@ -33,22 +34,33 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
       </p>
       {items.map((item) => (
         <div key={item.id} className="flex items-center gap-2">
-          <input type="checkbox" checked={item.checked} onChange={() => toggle(item.id)} className="h-4 w-4 accent-[#c8f135]" />
+          <input
+            type="checkbox"
+            checked={item.checked}
+            onChange={() => toggle(item.id)}
+            disabled={readOnly}
+            className="h-4 w-4 accent-[#c8f135]"
+          />
           <input
             type="text"
             value={item.text}
             onChange={(e) => updateText(item.id, e.target.value)}
             placeholder={t('editor.itemPlaceholder')}
             className="xko-input flex-1"
+            readOnly={readOnly}
           />
-          <button type="button" onClick={() => removeItem(item.id)} className="text-xs text-text-muted hover:text-accent-secondary">
-            ×
-          </button>
+          {!readOnly && (
+            <button type="button" onClick={() => removeItem(item.id)} className="text-xs text-text-muted hover:text-accent-secondary">
+              ×
+            </button>
+          )}
         </div>
       ))}
-      <button type="button" onClick={addItem} className="xko-btn xko-btn--ghost mt-1 self-start text-xs">
-        + {t('editor.addItem')}
-      </button>
+      {!readOnly && (
+        <button type="button" onClick={addItem} className="xko-btn xko-btn--ghost mt-1 self-start text-xs">
+          + {t('editor.addItem')}
+        </button>
+      )}
     </div>
   );
 }

@@ -2,21 +2,21 @@ import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@2xko/core';
 
 import { DRIVE_SYNC_DEBOUNCE_MS } from '@/constants/autosave';
-import { isDesktopApp } from '@/utils/isDesktopApp';
+import { supportsGoogleDrive } from '@/utils/platform';
 import { buildSyncPayload, mergeAppData, parseSyncPayload, saveToDataFile } from './fileStorage';
 
-const DESKTOP_ONLY = 'Google Drive sync requires the desktop app (.exe).';
+const TAURI_ONLY = 'Google Drive sync requires the installed app.';
+
+function ensureTauri(): void {
+  if (!supportsGoogleDrive()) {
+    throw new Error(TAURI_ONLY);
+  }
+}
 
 let driveTimer: ReturnType<typeof setTimeout> | null = null;
 let driveSyncInFlight = false;
 let driveSyncDueAt: number | null = null;
 let pendingDriveSync = false;
-
-function ensureDesktop(): void {
-  if (!isDesktopApp()) {
-    throw new Error(DESKTOP_ONLY);
-  }
-}
 
 function clearDriveSchedule(): void {
   if (driveTimer) {
@@ -43,7 +43,6 @@ function isBenignPullError(msg: string): boolean {
     msg.includes('Not connected to Google Drive')
   );
 }
-
 async function invokePush(): Promise<{ folder_id: string; file_id: string }> {
   const { syncMeta } = useAppStore.getState();
   const json = buildSyncPayload();
@@ -55,7 +54,7 @@ async function invokePush(): Promise<{ folder_id: string; file_id: string }> {
 }
 
 export async function syncGoogleDriveStatus(): Promise<void> {
-  if (!isDesktopApp()) return;
+  if (!supportsGoogleDrive()) return;
 
   try {
     const status = await tauriInvoke<{ connected: boolean; email: string | null }>(
@@ -78,7 +77,7 @@ export async function syncGoogleDriveStatus(): Promise<void> {
 }
 
 export async function connectGoogleDrive(): Promise<string> {
-  ensureDesktop();
+  ensureTauri();
   const email = await tauriInvoke<string>('google_drive_connect');
   useAppStore.getState().setGoogleConnected(true, email);
   useAppStore.getState().setSyncStatus('syncing');
@@ -87,14 +86,14 @@ export async function connectGoogleDrive(): Promise<string> {
 }
 
 export async function disconnectGoogleDrive(): Promise<void> {
-  ensureDesktop();
+  ensureTauri();
   await tauriInvoke('google_drive_disconnect');
   clearDriveSchedule();
   useAppStore.getState().setGoogleConnected(false);
 }
 
 export async function pullFromGoogleDrive(silent = false): Promise<boolean> {
-  if (!isDesktopApp()) return false;
+  if (!supportsGoogleDrive()) return false;
 
   const { syncMeta, setDriveIds, setSyncStatus } = useAppStore.getState();
   if (!syncMeta.googleConnected) return false;
@@ -136,7 +135,7 @@ export async function pullFromGoogleDrive(silent = false): Promise<boolean> {
 }
 
 export async function pushToGoogleDrive(force = false): Promise<boolean> {
-  if (!isDesktopApp()) return false;
+  if (!supportsGoogleDrive()) return false;
 
   const { syncMeta, setDriveIds, setSyncStatus, setLastSyncAt } = useAppStore.getState();
   if (!syncMeta.googleConnected) return false;
@@ -150,6 +149,7 @@ export async function pushToGoogleDrive(force = false): Promise<boolean> {
     setDriveIds(result.folder_id, result.file_id);
     setLastSyncAt(new Date().toISOString());
     setSyncStatus('synced');
+    await saveToDataFile();
     return true;
   } catch (e) {
     console.warn('pushToGoogleDrive:', e);
@@ -161,6 +161,7 @@ export async function pushToGoogleDrive(force = false): Promise<boolean> {
         setDriveIds(result.folder_id, result.file_id);
         setLastSyncAt(new Date().toISOString());
         setSyncStatus('synced');
+        await saveToDataFile();
         return true;
       } catch (retryErr) {
         console.warn('pushToGoogleDrive retry:', retryErr);
@@ -176,7 +177,7 @@ export async function pushToGoogleDrive(force = false): Promise<boolean> {
 
 export function scheduleDriveSync(): void {
   const { syncMeta } = useAppStore.getState();
-  if (!isDesktopApp() || !syncMeta.googleConnected) return;
+  if (!supportsGoogleDrive() || !syncMeta.googleConnected) return;
 
   clearDriveSchedule();
   pendingDriveSync = true;
@@ -190,7 +191,7 @@ export function scheduleDriveSync(): void {
 }
 
 export async function flushDriveSync(): Promise<void> {
-  if (!isDesktopApp()) return;
+  if (!supportsGoogleDrive()) return;
   if (!pendingDriveSync && !driveSyncInFlight) return;
   clearDriveSchedule();
   await pushToGoogleDrive(true);
