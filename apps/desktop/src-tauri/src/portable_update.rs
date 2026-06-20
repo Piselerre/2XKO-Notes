@@ -36,6 +36,7 @@ pub fn apply_portable_exe_update(new_exe_path: String) -> Result<(), String> {
             return Err("update exe missing".into());
         }
 
+        let pid = std::process::id();
         let stamp = chrono::Local::now().format("%Y%m%d%H%M%S");
         let script = std::env::temp_dir().join(format!("2xko-exe-update-{stamp}.ps1"));
         let script_body = format!(
@@ -43,9 +44,14 @@ pub fn apply_portable_exe_update(new_exe_path: String) -> Result<(), String> {
 $ErrorActionPreference = 'Stop'
 $src = '{src}'
 $dst = '{dst}'
-Start-Sleep -Seconds 2
-Get-Process -Name '2XKO Notes' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+$pidToStop = {pid}
 Start-Sleep -Seconds 1
+Stop-Process -Id $pidToStop -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+  Where-Object {{ $_.ExecutablePath -and ($_.ExecutablePath -ieq $dst) }} |
+  ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}
+Start-Sleep -Milliseconds 500
 Unblock-File -LiteralPath $src -ErrorAction SilentlyContinue
 Copy-Item -LiteralPath $src -Destination $dst -Force
 Unblock-File -LiteralPath $dst -ErrorAction SilentlyContinue
@@ -54,6 +60,7 @@ Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
 "#,
             src = source.to_string_lossy().replace('\'', "''"),
             dst = target_exe.to_string_lossy().replace('\'', "''"),
+            pid = pid,
             script = script.to_string_lossy().replace('\'', "''"),
         );
         fs::write(&script, script_body).map_err(|e| e.to_string())?;
@@ -71,6 +78,11 @@ Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
             .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .map_err(|e| e.to_string())?;
+
+        std::thread::spawn(|| {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            std::process::exit(0);
+        });
 
         return Ok(());
     }
@@ -129,6 +141,7 @@ pub fn apply_portable_zip_update(zip_path: String) -> Result<(), String> {
             .map(|p| p.to_string_lossy().replace('\'', "''"))
             .unwrap_or_else(|| target.to_string_lossy().replace('\'', "''"));
         let extract_root = extract_dir.to_string_lossy().replace('\'', "''");
+        let pid = std::process::id();
         let script_body = format!(
             r#"
 $ErrorActionPreference = 'Stop'
@@ -136,9 +149,14 @@ $src = '{src}'
 $dst = '{dst}'
 $parent = '{parent}'
 $extractRoot = '{extract_root}'
-Start-Sleep -Seconds 2
-Get-Process -Name '2XKO Notes' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+$pidToStop = {pid}
 Start-Sleep -Seconds 1
+Stop-Process -Id $pidToStop -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+  Where-Object {{ $_.ExecutablePath -and (($_.ExecutablePath -ieq $dst) -or ($_.ExecutablePath -like (Join-Path $dst '*'))) }} |
+  ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}
+Start-Sleep -Milliseconds 500
 Get-ChildItem -LiteralPath $extractRoot -Recurse -Force | Unblock-File -ErrorAction SilentlyContinue
 Copy-Item -Path (Join-Path $src '*') -Destination $dst -Recurse -Force
 foreach ($name in @('README.txt')) {{
@@ -156,6 +174,7 @@ Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
             dst = target.to_string_lossy().replace('\'', "''"),
             parent = parent,
             extract_root = extract_root,
+            pid = pid,
             script = script.to_string_lossy().replace('\'', "''"),
         );
         fs::write(&script, script_body).map_err(|e| e.to_string())?;
@@ -173,6 +192,11 @@ Remove-Item -LiteralPath '{script}' -Force -ErrorAction SilentlyContinue
             .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .map_err(|e| e.to_string())?;
+
+        std::thread::spawn(|| {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            std::process::exit(0);
+        });
 
         return Ok(());
     }

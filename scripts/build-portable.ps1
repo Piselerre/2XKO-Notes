@@ -8,8 +8,6 @@ Set-Location apps\desktop
 pnpm tauri build --no-bundle
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$conf = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
-$ver = $conf.version
 $releaseDir = "src-tauri/target/release"
 $exe = Join-Path $releaseDir "2XKO Notes.exe"
 if (-not (Test-Path $exe)) {
@@ -19,7 +17,7 @@ if (-not (Test-Path $exe)) {
 
 $distRoot = Join-Path $PSScriptRoot "..\dist-releases"
 New-Item -ItemType Directory -Force -Path $distRoot | Out-Null
-$outName = "2XKO.Notes_${ver}_x64-portable.exe"
+$outName = "2XKO.Notes_x64-portable.exe"
 $outPath = Join-Path $distRoot $outName
 Copy-Item $exe $outPath -Force
 

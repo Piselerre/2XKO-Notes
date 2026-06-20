@@ -12,8 +12,8 @@ if (!version) {
 }
 
 const repo = 'Piselerre/2XKO-Notes';
-const exeName = `2XKO.Notes_${version}_x64-portable.exe`;
-const url = `https://github.com/${repo}/releases/download/v${version}/${exeName}`;
+const PORTABLE_EXE_NAME = '2XKO.Notes_x64-portable.exe';
+const url = `https://github.com/${repo}/releases/download/v${version}/${PORTABLE_EXE_NAME}`;
 
 const latest = {
   version,

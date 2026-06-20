@@ -41,7 +41,12 @@ export function UpdateManagerProvider({ children }: { children: React.ReactNode 
 
   const startInstall = useCallback(async () => {
     setPhase('installing');
-    await installPreparedUpdate(version, { silent: silentBinary });
+    try {
+      await installPreparedUpdate(version, { silent: silentBinary });
+    } catch (e) {
+      console.error('Binary update install failed:', e);
+      setPhase('ready');
+    }
   }, [version, silentBinary]);
 
   useEffect(() => {

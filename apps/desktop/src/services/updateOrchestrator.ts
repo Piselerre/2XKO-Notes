@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { join, tempDir } from '@tauri-apps/api/path';
 
 import { APP_VERSION, IS_PORTABLE_BUILD, PORTABLE_CHANNEL_MIN_VERSION } from '@/constants/version';
 import { PUBLIC_PORTABLE_UPDATER_URL } from '@/constants/updates';
@@ -160,7 +161,8 @@ export async function prepareBinaryUpdate(
   if (plan.exeUrl) {
     try {
       onProgress(2);
-      const exePath = `C:\\Windows\\Temp\\2xko-update-${plan.version}.exe`;
+      const dir = await tempDir();
+      const exePath = await join(dir, `2xko-update-${plan.version}.exe`);
       onProgress(10);
       await invoke('download_file', { url: plan.exeUrl, dest: exePath });
       onProgress(100);
@@ -182,7 +184,8 @@ export async function prepareBinaryUpdate(
   if (plan.zipUrl) {
     try {
       onProgress(2);
-      const zipPath = `C:\\Windows\\Temp\\2xko-update-${plan.version}.zip`;
+      const dir = await tempDir();
+      const zipPath = await join(dir, `2xko-update-${plan.version}.zip`);
       onProgress(10);
       await invoke('download_file', { url: plan.zipUrl, dest: zipPath });
       onProgress(100);
@@ -244,14 +247,15 @@ export async function prepareBinaryUpdate(
 }
 
 export async function installPreparedUpdate(version: string, options?: { silent?: boolean }): Promise<void> {
-  if (!pendingBinary) return;
+  if (!pendingBinary) {
+    throw new Error('No pending update package');
+  }
   if (!options?.silent) {
     setJustUpdatedVersion(version);
   }
   await pendingBinary.install();
   if (pendingBinary.mode === 'zip' || pendingBinary.mode === 'exe') {
-    const { exit } = await import('@tauri-apps/plugin-process');
-    await exit(0);
+    // Rust apply_* commands spawn the swap script and exit the process themselves.
     return;
   }
   const { relaunch } = await import('@tauri-apps/plugin-process');

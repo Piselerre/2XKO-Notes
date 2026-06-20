@@ -6,6 +6,8 @@ param(
 
 Set-Location $PSScriptRoot\..
 
+$PortableExeName = "2XKO.Notes_x64-portable.exe"
+
 Write-Host "Building portable exe..."
 powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -13,7 +15,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node scripts/generate-latest-portable-json.mjs $Version
 node scripts/verify-updates-channel.mjs
 
-$exe = Join-Path "dist-releases" "2XKO.Notes_${Version}_x64-portable.exe"
+$exe = Join-Path "dist-releases" $PortableExeName
 if (-not (Test-Path $exe)) {
   Write-Error "Exe not found: $exe"
   exit 1
@@ -24,7 +26,7 @@ $notes = @"
 
 Built with care for the competitive 2XKO scene.
 
-1. Download **2XKO.Notes_${Version}_x64-portable.exe**.
+1. Download **$PortableExeName**.
 2. Run it from any folder (Desktop, Downloads, etc.).
 3. Notes are stored in ``Documents\2XKO Notes\2xko-notes.sync.json``
 
